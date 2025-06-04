@@ -6,7 +6,6 @@ module jacob
   
   
 contains 
-  
 
   !_______________________________________________________________________________
   subroutine build_jaco
@@ -29,13 +28,15 @@ contains
    
     call cpu_time(tt1)
 
-    nj_rows=jind(my_rank,2)-jind(my_rank,1)+1
+    n_data_assigned = data_assignments(my_rank,2) - data_assignments(my_rank,1) + 1
     if(.not. allocated(Jaco)) then
-       allocate(Jaco(nj_rows,nelem))
+       allocate(Jaco(n_data_assigned, n_elements))
     elseif(res_flag .and. allocated(Jaco)) then
        deallocate(Jaco) 
-       allocate(Jaco(nj_rows,nelem))
+       allocate(Jaco(n_data_assigned,n_elements))
     end if
+
+
 
     pa=0; pb=0; pm=0; pn=0
   
@@ -68,33 +69,33 @@ contains
                 !else
                    pa=poles(:,s_conf(1,di)-eind(my_rank,1)+1)
                 !end if
-                call MPI_BCAST(pa,nnodes,MPI_REAL,mown-1,SCOMM,ierr)
+                call MPI_BCAST(pa,nnodes,MPI_DOUBLE,mown-1,SCOMM,ierr)
              case(2)
                 !if(invi) then
                 !   pb=polesi(:,s_conf(1,di)-eind(my_rank,1)+1)
                 !else
                    pb=poles(:,s_conf(1,di)-eind(my_rank,1)+1)
                 !end if
-                call MPI_BCAST(pb,nnodes,MPI_REAL,mown-1,SCOMM,ierr)
+                call MPI_BCAST(pb,nnodes,MPI_DOUBLE,mown-1,SCOMM,ierr)
              case(3)
                 pm=poles(:,s_conf(1,di)-eind(my_rank,1)+1)
-                call MPI_BCAST(pm,nnodes,MPI_REAL,mown-1,SCOMM,ierr)
+                call MPI_BCAST(pm,nnodes,MPI_DOUBLE,mown-1,SCOMM,ierr)
              case(4)
                 pn=poles(:,s_conf(1,di)-eind(my_rank,1)+1)
-                call MPI_BCAST(pn,nnodes,MPI_REAL,mown-1,SCOMM,ierr)
+                call MPI_BCAST(pn,nnodes,MPI_DOUBLE,mown-1,SCOMM,ierr)
              end select
        
           else
 
              select case(di)
              case(1)
-                call MPI_BCAST(pa,nnodes,MPI_REAL,mown-1,SCOMM,ierr)
+                call MPI_BCAST(pa,nnodes,MPI_DOUBLE,mown-1,SCOMM,ierr)
              case(2)
-                call MPI_BCAST(pb,nnodes,MPI_REAL,mown-1,SCOMM,ierr)
+                call MPI_BCAST(pb,nnodes,MPI_DOUBLE,mown-1,SCOMM,ierr)
              case(3)
-                call MPI_BCAST(pm,nnodes,MPI_REAL,mown-1,SCOMM,ierr)
+                call MPI_BCAST(pm,nnodes,MPI_DOUBLE,mown-1,SCOMM,ierr)
              case(4)
-                call MPI_BCAST(pn,nnodes,MPI_REAL,mown-1,SCOMM,ierr)
+                call MPI_BCAST(pn,nnodes,MPI_DOUBLE,mown-1,SCOMM,ierr)
              end select
                 
           end if
@@ -143,7 +144,7 @@ contains
           if((emin .le. b) .and. (emax .ge. b)) rb = i 
           if((emin .le. m) .and. (emax .ge. m)) rm = i
           if((emin .le. n) .and. (emax .ge. n)) rn = i
-          if((jind(i,1) .le. di) .and. (jind(i,2) .ge. di)) mown = i
+          if((data_assignments(i,1) .le. di) .and. (data_assignments(i,2) .ge. di)) mown = i
        end do
        
        if(mown==my_rank) then          
@@ -161,7 +162,7 @@ contains
           else
 
              if(ra .ne. 0) then
-                call MPI_RECV(pa, nnodes, MPI_REAL, ra,a, E4D_COMM, status, ierr)
+                call MPI_RECV(pa, nnodes, MPI_DOUBLE, ra,a, E4D_COMM, status, ierr)
              end if
 
           end if
@@ -179,7 +180,7 @@ contains
           else
 
              if(rb .ne. 0) then
-                call MPI_RECV(pb, nnodes, MPI_REAL, rb,b, E4D_COMM, status, ierr) 
+                call MPI_RECV(pb, nnodes, MPI_DOUBLE, rb,b, E4D_COMM, status, ierr) 
              end if
           end if
           !end if
@@ -190,7 +191,7 @@ contains
              pm=poles(:,m-eind(my_rank,1)+1)
           else
              if(rm .ne. 0) then
-                call MPI_RECV(pm, nnodes, MPI_REAL, rm,m, E4D_COMM, status, ierr)
+                call MPI_RECV(pm, nnodes, MPI_DOUBLE, rm,m, E4D_COMM, status, ierr)
              end if
           end if
           !end if
@@ -200,12 +201,12 @@ contains
              pn = poles(:,n-eind(my_rank,1)+1)
           else 
              if(rn .ne. 0) then
-                call MPI_RECV(pn, nnodes, MPI_REAL, rn,n, E4D_COMM, status, ierr)
+                call MPI_RECV(pn, nnodes, MPI_DOUBLE, rn,n, E4D_COMM, status, ierr)
              end if
           end if
           !end if
          
-          my_jrow = di - jind(my_rank,1) + 1
+          my_jrow = di - data_assignments(my_rank,1) + 1
      
           call build_my_jaco(my_jrow,pa-pb,pm-pn)
           call MPI_SEND(my_rank,1,MPI_INTEGER,0,1,E4D_COMM,ierr)
@@ -221,7 +222,7 @@ contains
              !else
                 pa = poles(:,a-eind(my_rank,1)+1)
              !end if
-             call MPI_SEND(pa,nnodes,MPI_REAL,mown,a,E4D_COMM, ierr)
+             call MPI_SEND(pa,nnodes,MPI_DOUBLE,mown,a,E4D_COMM, ierr)
              
           end if
           !end if
@@ -233,21 +234,21 @@ contains
              !else
                 pb = poles(:,b-eind(my_rank,1)+1)
              !end if
-             call MPI_SEND(pb,nnodes,MPI_REAL,mown,b,E4D_COMM, ierr)
+             call MPI_SEND(pb,nnodes,MPI_DOUBLE,mown,b,E4D_COMM, ierr)
           end if
           !end if
 
           !if(m .ne. m_old) then
           if(rm==my_rank) then
              pm = poles(:,m-eind(my_rank,1)+1)
-             call MPI_SEND(pm,nnodes,MPI_REAL,mown,m,E4D_COMM, ierr)
+             call MPI_SEND(pm,nnodes,MPI_DOUBLE,mown,m,E4D_COMM, ierr)
           end if
           !end if
 
           !if(n .ne. n_old) then
           if(rn==my_rank) then
              pn = poles(:,n-eind(my_rank,1)+1)
-             call MPI_SEND(pn,nnodes,MPI_REAL,mown,n,E4D_COMM, ierr)
+             call MPI_SEND(pn,nnodes,MPI_DOUBLE,mown,n,E4D_COMM, ierr)
           end if
           !end if
        end if
@@ -258,11 +259,12 @@ contains
        n_old=n
 
     end do
+
     
 
     !!turn elements off if necessary
     if(allocated(J_on_off)) then
-       do i=1,nelem
+       do i=1,n_elements
           if(.not. J_on_off(i)) then
              Jaco(:,i)=0
           end if;
@@ -283,7 +285,7 @@ contains
     integer :: js
     
     mcount=0  
-    do j=1,nelem
+    do j=1,n_elements
 
        C2 = 0   
        do k=1,10
@@ -301,13 +303,16 @@ contains
        
        !!Use this for estimating log(delta_sigma)
        if(invi) then
-          Jaco(irow,j) = -sigmai(j)*C2
+          Jaco(irow,j) = -sigma_im(j)*C2
        else
-          Jaco(irow,j) = -sigma(j)*C2
+          Jaco(irow,j) = -sigma_re(j)*C2
        end if
+
+
 
     end do
 
+    
    
   end subroutine build_my_jaco
   !_______________________________________________________________________________

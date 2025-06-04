@@ -1,131 +1,96 @@
-PETSC_DIR = ~/codes/petsc
-PETSC_ARCH= arch-linux2-c-opt
-
-#PETSC_DIR =/home/john775/codes/petsc_opt/petsc
-#PETSC_ARCH=arch-linux2-c-opt
-f95 = ${PETSC_DIR}/${PETSC_ARCH}/bin/mpif90
-libs =
-
-
-CFLAGS = ${PETSC_CC_INCLUDES}
-FFLAGS = ${PETSC_FC_INCLUDES}
-
 include ${PETSC_DIR}/lib/petsc/conf/variables
 
+FC =
+FFLAGS =
+libs =
+PETSC_DIR = 
+PETSC_INCLUDES = ${PETSC_FC_INCLUDES}
 
-objects = FMM_VARS.o VARS.o DISTRIBUTOR.o READ_INP.o READ_INP_FMM.o REORDER_MESH.o\
-	FORWARD_FMM.o ASSEMBLE_FMM.o BUILD_AMAP.o JACOBIAN_FMM.o   \
-	JACOBIAN.o mat_inv.o FORWARD.o ASSEMBLE.o BuildMesh.o \
-	DD_OPT_SLAVE.o SLAVE.o SLAVE_FMM.o\
+objects = utility.o vtk.o \
+	VARS.o DISTRIBUTOR.o READ_INP.o REORDER_MESH.o \
+	BUILD_AMAP.o \
+	JACOBIAN.o mat_inv.o FORWARD.o ASSEMBLE.o BuildMesh.f90.o \
+	DD_OPT_SLAVE.o SLAVE.o \
 	BUILD_MODEL_CONSTRAINTS.o OBJ.o\
-	REPORT.o REPORT_FMM.o Output.o Output_FMM.o MASTER.o MASTER_FMM.o  \
-	Multi_Forward.o INVERT.o JOINT_INVERT.o FMM_MAIN.o\
+	REPORT.o Output.o MASTER.o  \
+	Multi_Forward.o INVERT.o \
 	DD_OPT.o V_ANALYTIC.o E4D.o
 
 e4d : $(objects)
-	$(f95) $(objects) -o e4d ${PETSC_LIB}
+	$(FC) $(objects) -o e4d ${PETSC_LIB}
 
 E4D.o : E4D.F90
-	$(f95) -c E4D.F90  -D resmode -o E4D.o ${PETSC_FC_INCLUDES}
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c E4D.F90  -D resmode -o E4D.o ${PETSC_FC_INCLUDES}
 
 VARS.o : VARS.F90
-	$(f95)  -c VARS.F90 -o VARS.o ${PETSC_FC_INCLUDES}
+	$(FC)  $(FFLAGS) -r8 -heap-arrays -c VARS.F90 -o VARS.o ${PETSC_FC_INCLUDES}
 
 MASTER.o : MASTER.F90
-	$(f95) -c MASTER.F90 -o MASTER.o ${PETSC_FC_INCLUDES} 
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c MASTER.F90 -o MASTER.o ${PETSC_FC_INCLUDES} 
 
 SLAVE.o : SLAVE.F90
-	$(f95) -c SLAVE.F90 -D resmode -o SLAVE.o ${PETSC_FC_INCLUDES} 
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c SLAVE.F90 -D resmode -o SLAVE.o ${PETSC_FC_INCLUDES} 
 
 READ_INP.o : READ_INP.F90
-	$(f95) -c READ_INP.F90 -D resmode -D sip -o READ_INP.o 
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c READ_INP.F90 -D resmode -D sip -o READ_INP.o ${PETSC_INCLUDES}
 
 BUILD_AMAP.o : BUILD_AMAP.F90
-	$(f95) -c BUILD_AMAP.F90 -o BUILD_AMAP.o ${PETSC_FC_INCLUDES}   
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c BUILD_AMAP.F90 -o BUILD_AMAP.o ${PETSC_FC_INCLUDES}   
 
 mat_inv.o : mat_inv.F
-	$(f95) -c mat_inv.F -o mat_inv.o ${PETSC_FC_INCLUDES}
-
-IMI.o : IMI.F90
-	$(f95) -c IMI.F90 -o IMI.o ${PETSC_FC_INCLUDES}
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c mat_inv.F -o mat_inv.o ${PETSC_FC_INCLUDES}
 
 FORWARD.o : FORWARD.F90
-	$(f95) -c FORWARD.F90 -o FORWARD.o ${PETSC_FC_INCLUDES}
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c FORWARD.F90 -o FORWARD.o ${PETSC_FC_INCLUDES}
 
 Multi_Forward.o : Multi_Forward.F90
-	$(f95) -c Multi_Forward.F90 -o Multi_Forward.o ${PETSC_FC_INCLUDES}
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c Multi_Forward.F90 -o Multi_Forward.o ${PETSC_FC_INCLUDES}
 
 ASSEMBLE.o : ASSEMBLE.F90
-	$(f95) -c ASSEMBLE.F90 -o ASSEMBLE.o ${PETSC_FC_INCLUDES}
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c ASSEMBLE.F90 -o ASSEMBLE.o ${PETSC_FC_INCLUDES}
 
 Output.o : Output.f90
-	$(f95) -c Output.f90 -o Output.o
+	$(FC) $(FFLAGS) -r8 -c Output.f90 -o Output.o ${PETSC_INCLUDES}
 
 BUILD_MODEL_CONSTRAINTS.o : BUILD_MODEL_CONSTRAINTS.f90
-	$(f95) -c BUILD_MODEL_CONSTRAINTS.f90 -o BUILD_MODEL_CONSTRAINTS.o
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c BUILD_MODEL_CONSTRAINTS.f90 -o BUILD_MODEL_CONSTRAINTS.o ${PETSC_INCLUDES}
 
 OBJ.o : OBJ.f90
-	$(f95) -c OBJ.f90 -o OBJ.o
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c OBJ.f90 -o OBJ.o ${PETSC_INCLUDES}
 
 REPORT.o : REPORT.f90
-	$(f95) -c REPORT.f90 -o REPORT.o
+	$(FC) $(FFLAGS) -r8 -c REPORT.f90 -o REPORT.o ${PETSC_INCLUDES}
 
 JACOBIAN.o : JACOBIAN.F90
-	$(f95) -c JACOBIAN.F90 -o JACOBIAN.o
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c JACOBIAN.F90 -o JACOBIAN.o ${PETSC_INCLUDES}
 
 INVERT.o : INVERT.F90
-	$(f95) -c INVERT.F90 -o INVERT.o
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c INVERT.F90 -o INVERT.o ${PETSC_INCLUDES}
 
-JOINT_INVERT.o : JOINT_INVERT.F90
-	 $(f95) -c JOINT_INVERT.F90 -o JOINT_INVERT.o
-
-BuildMesh.o : BuildMesh.f90
-	$(f95) -c BuildMesh.f90 -o BuildMesh.o
+BuildMesh.f90.o : BuildMesh.f90
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c BuildMesh.f90 -o BuildMesh.f90.o ${PETSC_INCLUDES}
 
 V_ANALYTIC.o : V_ANALYTIC.f90
-	$(f95) -c V_ANALYTIC.f90 -o V_ANALYTIC.o 
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c V_ANALYTIC.f90 -o V_ANALYTIC.o ${PETSC_INCLUDES}
 
 DD_OPT.o : DD_OPT.F90
-	$(f95) -c DD_OPT.F90 -o DD_OPT.o
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c DD_OPT.F90 -o DD_OPT.o ${PETSC_INCLUDES}
 
 DD_OPT_SLAVE.o : DD_OPT_SLAVE.F90
-	$(f95)  -c DD_OPT_SLAVE.F90 -o DD_OPT_SLAVE.o
-
-FMM_VARS.o : FMM_VARS.F90
-	   $(f95)  -c FMM_VARS.F90 -o FMM_VARS.o ${PETSC_INCLUDES}
+	$(FC)  $(FFLAGS) -r8 -heap-arrays -c DD_OPT_SLAVE.F90 -o DD_OPT_SLAVE.o ${PETSC_INCLUDES}
 
 DISTRIBUTOR.o : DISTRIBUTOR.F90
-	   $(f95)  -c DISTRIBUTOR.F90 -o DISTRIBUTOR.o ${PETSC_INCLUDES}
-
-FMM_MAIN.o : FMM_MAIN.F90
-	   $(f95)  -c FMM_MAIN.F90 -o FMM_MAIN.o ${PETSC_INCLUDES}
-
-FORWARD_FMM.o : FORWARD_FMM.F90
-	   $(f95)  -c FORWARD_FMM.F90 -o FORWARD_FMM.o
-
-MASTER_FMM.o : MASTER_FMM.F90
-	   $(f95)  -c MASTER_FMM.F90 -o MASTER_FMM.o ${PETSC_INCLUDES}
-
-SLAVE_FMM.o : SLAVE_FMM.F90
-	   $(f95)  -c SLAVE_FMM.F90 -o SLAVE_FMM.o ${PETSC_INCLUDES}
-
-ASSEMBLE_FMM.o : ASSEMBLE_FMM.F90
-	$(f95) -c ASSEMBLE_FMM.F90 -o ASSEMBLE_FMM.o ${PETSC_FC_INCLUDES}
-
-Output_FMM.o : Output_FMM.f90
-	$(f95) -c Output_FMM.f90 -o Output_FMM.o
-
-REPORT_FMM.o : REPORT_FMM.f90
-	   $(f95)  -c REPORT_FMM.f90 -o REPORT_FMM.o
-
-READ_INP_FMM.o : READ_INP_FMM.F90
-	   $(f95)  -c READ_INP_FMM.F90 -o READ_INP_FMM.o
-	   
-JACOBIAN_FMM.o : JACOBIAN_FMM.F90
-	$(f95) -c JACOBIAN_FMM.F90 -o JACOBIAN_FMM.o
-
-MULTI_FORWARD.o : Multi_Forward.F90
-	$(f95) -c Multi_Forward.F90 -o MULTI_FORWARD.o
+	   $(FC)  $(FFLAGS) -r8 -heap-arrays -c DISTRIBUTOR.F90 -o DISTRIBUTOR.o ${PETSC_INCLUDES}
 
 REORDER_MESH.o : REORDER_MESH.f90
-	$(f95) -c REORDER_MESH.f90 -o REORDER_MESH.o
+	$(FC) $(FFLAGS) -r8 -heap-arrays -c REORDER_MESH.f90 -o REORDER_MESH.o ${PETSC_INCLUDES}
+
+utility.o : utility.F90
+	$(FC) $(FFLAGS) -heap-arrays -c utility.F90 -o utility.o
+
+vtk.o : vtk.F90
+	$(FC) $(FFLAGS) -heap-arrays -c vtk.F90 -o vtk.o
+
+.PHONY: clean
+clean :
+	rm -f *.o *.mod e4d *~
