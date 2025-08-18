@@ -16,7 +16,7 @@ objects = utility.o vtk.o \
 	Multi_Forward.o INVERT.o \
 	DD_OPT.o V_ANALYTIC.o E4D.o
 
-e4d : $(objects)
+e4d : $(objects) build_info.inc
 	$(FC) $(objects) -o e4d ${PETSC_LIB}
 
 E4D.o : E4D.F90
@@ -58,7 +58,7 @@ BUILD_MODEL_CONSTRAINTS.o : BUILD_MODEL_CONSTRAINTS.f90
 OBJ.o : OBJ.f90
 	$(FC) $(FFLAGS) -r8 -heap-arrays -c OBJ.f90 -o OBJ.o ${PETSC_INCLUDES}
 
-REPORT.o : REPORT.f90
+REPORT.o : REPORT.f90 build_info.inc
 	$(FC) $(FFLAGS) -r8 -c REPORT.f90 -o REPORT.o ${PETSC_INCLUDES}
 
 JACOBIAN.o : JACOBIAN.F90
@@ -91,6 +91,13 @@ utility.o : utility.F90
 vtk.o : vtk.F90
 	$(FC) $(FFLAGS) -heap-arrays -c vtk.F90 -o vtk.o
 
-.PHONY: clean
+build_info.inc:
+	echo "character(len=*), parameter :: BUILD_COMPILER = 'intel'" > build_info.inc
+	echo "character(len=*), parameter :: BUILD_VERSION = '1.0.0'" >> build_info.inc
+	echo "character(len=*), parameter :: BUILD_DATE = '$(shell date +%F)'" >> build_info.inc
+	echo "character(len=*), parameter :: BUILD_TIME = '$(shell date +%T)'" >> build_info.inc
+	echo "character(len=*), parameter :: BUILD_HOST = '$(shell hostname -I | awk '{print $$1}')'" >> build_info.inc
+
+.PHONY: clean build_info.inc
 clean :
 	rm -f *.o *.mod e4d *~

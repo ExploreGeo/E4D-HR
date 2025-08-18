@@ -3,6 +3,9 @@
 ! Increase witdth in format descriptor.
 ! 26/10/23 - OFGN
 ! Commenting out this call since this subroutine seems to lose track of the line containing the number of measurements.
+! 07/08/24 - DP
+! Added checks for observed resistance and phase to be positive and negative respectively.
+! If not, the program will stop with an error message to the log file and terminal.
 
 module input
     !_________________________________________________________________
@@ -3085,6 +3088,7 @@ contains
         integer :: i, j, junk
         real, dimension(4) :: etmp
         logical :: wdwarn = .true.
+        logical, allocatable :: neg_dobs_idx(:), pos_dobsi_idx(:)
 
         inquire (file=trim(trim(efile)), exist=exst)
         if (.not. exst) then
@@ -3109,12 +3113,28 @@ contains
         call check_inp(17, nm)
 
         allocate (dobs(nm), s_conf(nm, 4), Wd(nm))
+        allocate(neg_dobs_idx(nm))
+        neg_dobs_idx = .false.
+
         if (i_flag) then
 
             allocate (dobsi(nm), Wdi(nm))
+            allocate(pos_dobsi_idx(nm))
+            pos_dobsi_idx = .false.
 
             do i = 1, nm
                 read (10, *, IOSTAT=io_stat) junk, s_conf(i, 1:4), dobs(i), Wd(i), dobsi(i), Wdi(i); call check_inp(18, i)
+
+                ! Check for negative values in dobs and dobsi
+                if (dobs(i) < 0.0d0) then
+                    neg_dobs_idx(i) = .true.
+                end if
+
+                if (dobsi(i) > 0.0d0) then
+                    pos_dobsi_idx(i) = .true.
+                end if
+
+
                 if (Wd(i) <= 0 .or. Wdi(i) <= 0) then
                     Wd(i) = 1e15
                     Wdi(i) = 1e15
@@ -3136,6 +3156,11 @@ contains
             do i = 1, nm
                 read (10, *, IOSTAT=io_stat) junk, s_conf(i, 1:4), dobs(i), Wd(i); call check_inp(18, i)
 
+                ! Check for negative values in dobs
+                if (dobs(i) < 0.0d0) then
+                    neg_dobs_idx(i) = .true.
+                end if
+
                 if (Wd(i) <= 0) then
                     Wd(i) = 1e15
                     if (wdwarn) call check_inp(19, i)
@@ -3151,6 +3176,38 @@ contains
             end do
             close (10)
         end if
+
+        ! Check for any non-compliant dobs and output a warning
+        if (any(neg_dobs_idx)) then
+            write(*, *) "WARNING: Some resistance values are negative. These will be treated as missing data."
+            write(*, *) "Please check your survey file for errors."
+            write(*, *) "Indicies of negative resistance values output to the log file."
+            open (51, file='e4d.log', status='old', action='write', position='append')
+            write(51, *) "WARNING: Some resistance values are negative. These will be treated as missing data."
+            write(51, *) "Please check your survey file for errors."
+            write (51, *) "Negative resistance values found at indices: "
+            do i = 1, nm
+                if (neg_dobs_idx(i)) write (51, *) i
+            end do
+            close (51)
+        end if
+        if (any(pos_dobsi_idx)) then
+            write(*, *) "WARNING: Some phase values are positive. These will be treated as missing data."
+            write(*, *) "Please check your survey file for errors."
+            write(*, *) "Indicies of positive phase values output to the log file."
+            open (51, file='e4d.log', status='old', action='write', position='append')
+            write(51, *) "WARNING: Some phase values are positive. These will be treated as missing data."
+            write(51, *) "Please check your survey file for errors."
+            write (51, *) "Positive phase values found at indices: "
+            do i = 1, nm
+                if (pos_dobsi_idx(i)) write (51, *) i
+            end do
+            close (51)
+        end if
+        if (any(neg_dobs_idx) .or. any(pos_dobsi_idx)) then
+            call crash_exit
+        end if
+
     end subroutine read_survey
     !_________________________________________________________________________
 

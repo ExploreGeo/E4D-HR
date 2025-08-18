@@ -2,6 +2,10 @@
 !!
 !! @describe This module provides a logging functionality for the E4D-HR code.
 !!
+!! Changelog
+!! 07/08/24 - DP
+!! Added version control information which is printed to terminal and log file.
+!! Make file was also edited to allow for this.
 
 module e4d_report
 
@@ -10,6 +14,7 @@ module e4d_report
     use mod_con
     use input
     use mesh
+    include 'build_info.inc'
 
 contains
 
@@ -66,9 +71,14 @@ contains
         write (minute, "(I2.2)") values(6)
         write (second, "(I2.2)") values(7)
         write (*, *)
-        write (*, *) "************************ WELCOME TO E4D ************************"
+        write (*, *) "********************** WELCOME TO E4D-HR ***********************"
         write (*, *) "Copyright © 2014, Battelle Memorial Institute"
         write (*, *) "All rights reserved."
+        write (*, *)
+        write (*, *) "Build Version: ", trim(BUILD_VERSION)
+        write (*, *) "Build Date: ", trim(BUILD_DATE), " ", trim(BUILD_TIME)
+        write (*, *) "Build Host: ", trim(BUILD_HOST)
+        write (*, *)
         write (*, *) "Current date: ", trim(month), " ", trim(day), ", ", trim(year)
         write (*, *) "Current time:  ", trim(hour), ":", trim(minute), ":", trim(second)
         write (*, "(A,I7.7,A)") " Running on ", n_rank, " processing cores"
@@ -84,9 +94,14 @@ contains
             call crash_exit
             return
         end if
-        write (51, *) "************************ WELCOME TO E4D ************************"
+        write (51, *) "********************** WELCOME TO E4D-HR ***********************"
         write (51, *) "Copyright © 2014, Battelle Memorial Institute"
         write (51, *) "All rights reserved."
+        write (51, *)
+        write (51, *) "Build Version: ", trim(BUILD_VERSION)
+        write (51, *) "Build Date: ", trim(BUILD_DATE), " ", trim(BUILD_TIME)
+        write (51, *) "Build Host: ", trim(BUILD_HOST)
+        write (51, *)
         write (51, *) "Current date: ", trim(month), " ", trim(day), ", ", trim(year)
         write (51, *) "Current time:  ", trim(hour), ":", trim(minute), ":", trim(second)
         write (51, "(A,I7.7,A)") " Running on ", n_rank, " processing cores"

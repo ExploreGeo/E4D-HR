@@ -1,6 +1,8 @@
 ! Changelog
 ! 27/4/23 - OFGN
 ! Add format specifier to force single line output with the Intel Fortran Compiler. - OFGN 27/4/23
+! Increased precision to x_origin, y_origin and z_origin. Enabled the use of translate_flag OFGN 08/5/25
+! Added date and time to the trn file so we know which run produced it - @DP 11/08/25
 
 module mesh
 
@@ -29,6 +31,7 @@ contains
         integer :: m, d1, d2, d3, el1, el2, el3, el4, el5, i, j, k, tcount, nedge, ecount, bv, nsp2, ii, fstat
         integer :: n_points, count, npre, nplc, ns_points, n_surfac, dum1, dum2, dum3, ncplc, splc_count, nedge0, n2pts
         integer :: pt1, pt2, tetflag, vtk_flag, nh, nz, n, nedge_seq, nedge_flag, writit
+        integer :: dt(8)
         integer, dimension(:), allocatable ::  nc_plc, edge_flag, edge_seq, tflag, tf2, np_bounds
         integer, dimension(:), allocatable :: pmap, tmp_flag, tedge_flag
         integer, dimension(:, :), allocatable :: zon_labs, surfac
@@ -333,8 +336,11 @@ contains
         !!record the translation coordinates and write
         !!to file for runs in mode > 1
 
-        open (22, file=trim(mesh_prefix)//".trn", status='replace')
-        write (22, "(3E20.12)") x_origin, y_origin, z_origin
+        ! Added date and time to the trn file so we know which run produced it - @DP
+        call date_and_time(values=dt)
+        open (22, file=trim(mesh_prefix)//".trn", status='unknown', position='append')
+        write (22, '(I4.4,"-",I2.2,"-",I2.2,1X,I2.2,":",I2.2,":",I2.2,3(1X,ES20.12))') &
+            dt(1), dt(2), dt(3), dt(5), dt(6), dt(7), x_origin, y_origin, z_origin
         close(22)
 
         !!CONSTRUCT THE TRIANGLE .poly INPUT FILE

@@ -5,6 +5,9 @@
 ! Min phase set to the current measurement rather than the running total
 ! 1/10/23 - OFGN
 ! Increase witdth in format descriptor.
+! 07/08/24 - DP
+! Added sanity checks for geometric factor in calculate_mean_model and calculate_median_model
+! If geometric factor is negative, it is forced to be positive and a warning is written to the log file.
 
 module v_analytic
 
@@ -81,7 +84,7 @@ module v_analytic
     subroutine calculate_mean_model()
         implicit none
 
-        integer :: i, j                                     ! Loop index
+        integer :: i, j                                  ! Loop index
         real(8) :: pi = 4 * atan(1.0d0)                  ! Pi constant
         real(8) :: gfam, gfan, gfbm, gfbn                ! Terms for geometric factor calculation
         real(8) :: geometric_factor                      ! Geometric factor
@@ -126,6 +129,12 @@ module v_analytic
             call get_gf(gfbm, s_conf(i, 2), s_conf(i, 3))
             call get_gf(gfbn, s_conf(i, 2), s_conf(i, 4))
             geometric_factor = (gfam - gfan - (gfbm - gfbn)) / (4.0d0 * pi)
+            open(51, file='e4d.log', status='old', action='write', position='append')
+            if (geometric_factor <= 0.0d0) then
+                write(51, "(A53, I7, A26)") "  WARNING: Negative geometric factor for measurement ", i, "has been forced positive."
+                geometric_factor = abs(geometric_factor)
+            end if
+            close(51)
             app_sigma(i) = geometric_factor / dobs(i)
         end do
 
@@ -221,6 +230,12 @@ module v_analytic
             call get_gf(gfbm, s_conf(i, 2), s_conf(i, 3))
             call get_gf(gfbn, s_conf(i, 2), s_conf(i, 4))
             geometric_factor = (gfam - gfan - (gfbm - gfbn)) / (4.0d0 * pi)
+            open(51, file='e4d.log', status='old', action='write', position='append')
+            if (geometric_factor <= 0.0d0) then
+                write(51, "(A53, I10, A26)") "  WARNING: Negative geometric factor for measurement ", i, "has been forced positive."
+                geometric_factor = abs(geometric_factor)
+            end if
+            close(51)
             app_sigma(i) = geometric_factor / dobs(i)
             if ((app_sigma(i) > 0.0d0) .and. (app_sigma(i) > max_app_sigma)) then
                 max_app_sigma = app_sigma(i)

@@ -32,6 +32,8 @@
 \setlength{\floatsep}{10pt plus 1.0pt minus 2.0pt}
 \setlength{\intextsep}{10pt plus 1.0pt minus 2.0pt}
 
+% Remove red bozes in table of contents
+\hypersetup{pdfborder=0 0 0}
 
 \title{E4D-HR User Guide}
 \author{ExploreGeo}
@@ -53,11 +55,6 @@ E4D-HR is a modified version of E4D, with changes made for mineral exploration u
 
 This document is intended to guide geophysicists, who are familiar with DCR and IP methods, in using E4D to invert their data.
 
-\section{Installation}
-
-\subsection{System Requirements}
-
-E4D-HR is compatible with the following Linux distributions. Windows users with versions that support WSL2 (Windows Subsystem for Linux) are also supported.
 
 \section{Installation}
 
@@ -105,15 +102,11 @@ For an automatic installation of E4D, use the provided \texttt{install.sh} scrip
 \begin{enumerate}
     \item Ensure that the necessary environment variables for Intel MKL are set.
     \item Open a terminal and navigate to the directory where \texttt{install.sh} is located.
-    \item Make the script executable:
-    \begin{verbatim}
-chmod +x install.sh
-    \end{verbatim}
-    \item Run the script:
-    \begin{verbatim}
-./install.sh
-    \end{verbatim}
-    \item The script will automatically handle the installation of dependencies and compilation of E4D. Follow any prompts provided by the script.
+    \item Make the script executable: \begin{verbatim}
+chmod +x install.sh \end{verbatim}
+    \item Run the script:  \begin{verbatim}
+./install.sh   \end{verbatim}
+    \item The script will automatically handle the installation of dependencies and E4D compilation. Follow any prompts provided by the script.
 \end{enumerate}
 
 Using the automatic installation script simplifies the setup process and ensures that all components are installed correctly with minimal manual intervention.
@@ -775,7 +768,7 @@ This section includes information about the files that the user will need to man
     Rework needed, set to `none' for the time being.
 
     \item[\texttt{translate\_flag}] (int)\hfill \\
-    Rework needed, set to 0 for the time being.
+    Set to 1 to enable E4D automatic translation of the mesh or 0 to disable it. It is recommended to enable translation to minimize potential precision errors. A \hyperref[mesh_trn]{.trn} file will be generated with the corresponding translation values for x, y and z.
 \end{description}
 
 
