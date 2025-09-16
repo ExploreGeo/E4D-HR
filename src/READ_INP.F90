@@ -1,11 +1,6 @@
 ! Changelog
-! 1/10/23 - OFGN
-! Increase witdth in format descriptor.
-! 26/10/23 - OFGN
-! Commenting out this call since this subroutine seems to lose track of the line containing the number of measurements.
-! 07/08/24 - DP
-! Added checks for observed resistance and phase to be positive and negative respectively.
-! If not, the program will stop with an error message to the log file and terminal.
+! 18/08/25
+! Added the chi2 history and threshold values to the inversion options file.
 
 module input
     !_________________________________________________________________
@@ -472,7 +467,7 @@ contains
             read (10, *, IOSTAT=io_stat) izn; call check_inv_opts(4, i)
 
             if (EXTRNL) then
-                read (10, *, IOSTAT=io_stat) str1; call check_inv_opts(33, i)
+                read (10, *, IOSTAT=io_stat) str1; call check_inv_opts(34, i)
             else
                 read (10, *, IOSTAT=io_stat) itmp(i); call check_inv_opts(5, i)
                 if (itmp(i) > max_nlink) then
@@ -521,13 +516,13 @@ contains
 
             read (10, *) Fw_type(i), Fw_parm(i, 1:2); call check_inv_opts(12, i)
             if (EXTRNL) then
-                read (10, *, IOSTAT=io_stat) str1; call check_inv_opts(33, i)
+                read (10, *, IOSTAT=io_stat) str1; call check_inv_opts(34, i)
                 inquire (file=trim(str1), EXIST=exst)
                 if (.not. exst) then
-                    call check_inv_opts(34, i)
+                    call check_inv_opts(35, i)
                 else
                     tmpstr = str1
-                    call check_inv_opts(35, i)
+                    call check_inv_opts(36, i)
                     open (11, file='external_files.tmp', status='old', action='write', position='append')
                     write (11, *) i, trim(str1)
                     close (11)
@@ -540,7 +535,7 @@ contains
             if (str1 == "ref" .or. str1 == "REF" .or. str1 == "Ref") then
                 smetric(i, 3) = 1; call check_inv_opts(14, i)
             elseif (str1 == "pref" .or. str1 == "PREF" .or. str1 == "Pref") then
-                if (.not. tl_ly) call check_inv_opts(30, i)
+                if (.not. tl_ly) call check_inv_opts(31, i)
                 smetric(i, 3) = 2; call check_inv_opts(14, i)
                 if (.not. allocated(prefsig)) then
                     allocate (prefsig(n_elements))
@@ -553,7 +548,7 @@ contains
             else
                 read (str1, *, IOSTAT=io_stat) C_targ(i); call check_inv_opts(14, i)
                 if (smetric(i, 2) .eq. 3 .or. smetric(i, 2) .eq. 4 .or. smetric(i, 2) .eq. 7 .or. smetric(i, 2) .eq. 8) then
-                    if (C_targ(i) .le. 0) call check_inv_opts(31, i)
+                    if (C_targ(i) .le. 0) call check_inv_opts(32, i)
                     C_targ(i) = log(C_targ(i))
                 end if
             end if
@@ -651,7 +646,7 @@ contains
         end do
 
         if (.not. refmod_flag) then
-            call check_inv_opts(36, junk)
+            call check_inv_opts(37, junk)
         end if
 
         read (10, *, IOSTAT=io_stat) beta, del_obj, beta_red; call check_inv_opts(21, junk)
@@ -659,17 +654,18 @@ contains
         conv_opt = 1
 
         read (10, *, IOSTAT=io_stat) norm_chi2; call check_inv_opts(22, junk)
-        read (10, *, IOSTAT=io_stat) min_initer, max_initer; call check_inv_opts(23, junk)
+        read (10, *, IOSTAT=io_stat) chi2_hist_size, chi2_conv_thresh; call check_inv_opts(23, junk)
+        read (10, *, IOSTAT=io_stat) min_initer, max_initer; call check_inv_opts(24, junk)
         delta_initer = 0.001
-        initer_conv = 1e-4; 
-        read (10, *, IOSTAT=io_stat) min_sig, max_sig; call check_inv_opts(24, junk)
+        initer_conv = 1e-4;
+        read (10, *, IOSTAT=io_stat) min_sig, max_sig; call check_inv_opts(25, junk)
 
-        read (10, *, IOSTAT=io_stat) up_opt; call check_inv_opts(25, junk)
+        read (10, *, IOSTAT=io_stat) up_opt; call check_inv_opts(26, junk)
         if (up_opt == 1) then
-            read (10, *, IOSTAT=io_stat) nlsp; call check_inv_opts(26, junk)
+            read (10, *, IOSTAT=io_stat) nlsp; call check_inv_opts(27, junk)
             nlsp = nlsp + 1
             allocate (lsp(nlsp))
-            read (10, *) lsp(2:nlsp); call check_inv_opts(27, junk)
+            read (10, *) lsp(2:nlsp); call check_inv_opts(28, junk)
             lsp(1) = 0
         end if
 
@@ -684,7 +680,7 @@ contains
             up_opt = 2
         end select
 
-        read (10, *, IOSTAT=io_stat) cull_flag, cull_dev; call check_inv_opts(28, junk)
+        read (10, *, IOSTAT=io_stat) cull_flag, cull_dev; call check_inv_opts(29, junk)
         allocate (Wd_cull(nm))
         Wd_cull = 1.0
         nec = 0
@@ -697,6 +693,7 @@ contains
     end subroutine get_inv_optsII
     !___________________________________________________________________________________
 
+    ! The subroutine below is deprecated and is not used.
     !__________________________________________________________________________________
     subroutine get_inv_opts
     !!reads in the inversion regularization and weighting options
@@ -855,6 +852,8 @@ contains
         open (51, file='e4d.log', status='old', action='write', position='append')
         write (51, *) "CONVERGENCE OPTION = ", conv_opt
         write (51, *) "TARGET CHI-SQUARED = ", norm_chi2
+        write (51, *) "CHI-SQUARED RUNNING AVERAGE HISTORY SIZE = ", chi2_hist_size
+        write (51, *) "CHI-SQUARED CONVERGENCE THRESHOLD = ", chi2_conv_thresh
         write (51, *) "MINIMUM OBJECTIVE FUNCTION REDUCTION = ", del_obj
         close (51)
 
@@ -2703,6 +2702,38 @@ contains
             end if
             if (io_stat .ne. 0) then
                 write (51, *)
+                if (invi) then
+                    write (51, *) " There was a problem reading the chi2 history size and convergence threshold"
+                    write (51, *) " in the inverse options file: ", trim(iinvfile)
+                else
+                    write (51, *) " There was a problem reading the chi2 history size and convergence threshold"
+                    write (51, *) " in the inverse options file: ", trim(invfile)
+                end if
+                write (51, *) " Aborting ..."
+                close (51)
+                call crash_exit
+            else
+                write (51, "(A30,8x,G12.5)") "Running average window: ", chi2_hist_size
+                write (51, "(A30,8x,G12.5)") "Running average threshold (%): ", chi2_conv_thresh
+            end if
+
+            if (chi2_hist_size < 2) then
+                write (51, *)
+                write (51, *) " The chi2 history size must be at least 2"
+                write (51, *) " Aborting ..."
+                close (51)
+                call crash_exit
+            end if
+            close (51)
+
+        case (24)
+            if (im_fmm) then
+                open (51, file='fmm.log', status='old', action='write', position='append')
+            else
+                open (51, file='e4d.log', status='old', action='write', position='append')
+            end if
+            if (io_stat .ne. 0) then
+                write (51, *)
                 write (51, *) " There was a problem reading the maximum number of inner"
                 if (invi) then
                     write (51, *) " iterations in the inverse options file: ", trim(iinvfile)
@@ -2738,7 +2769,7 @@ contains
             end if
             close (51)
 
-        case (24)
+        case (25)
             if (im_fmm) then
                 open (51, file='fmm.log', status='old', action='write', position='append')
             else
@@ -2788,7 +2819,7 @@ contains
             end if
             close (51)
 
-        case (25)
+        case (26)
             if (im_fmm) then
                 open (51, file='fmm.log', status='old', action='write', position='append')
             else
@@ -2830,7 +2861,7 @@ contains
             end if
             close (51)
 
-        case (26)
+        case (27)
             if (im_fmm) then
                 open (51, file='fmm.log', status='old', action='write', position='append')
             else
@@ -2858,7 +2889,7 @@ contains
             end if
             close (51)
 
-        case (27)
+        case (28)
             if (im_fmm) then
                 open (51, file='fmm.log', status='old', action='write', position='append')
             else
@@ -2896,7 +2927,7 @@ contains
             end do
             close (51)
 
-        case (28)
+        case (29)
             if (im_fmm) then
                 open (51, file='fmm.log', status='old', action='write', position='append')
             else
@@ -2939,7 +2970,7 @@ contains
                 close (51)
             end if
 
-        case (29)
+        case (30)
             if (im_fmm) then
                 open (51, file='fmm.log', status='old', action='write', position='append')
             else
@@ -2949,7 +2980,7 @@ contains
             write (51, *) "****************************************************************"
             write (51, *)
 
-        case (30)
+        case (31)
             if (im_fmm) then
                 open (51, file='fmm.log', status='old', action='write', position='append')
             else
@@ -2971,7 +3002,7 @@ contains
 
             call crash_exit
 
-        case (31)
+        case (32)
             if (im_fmm) then
                 open (51, file='fmm.log', status='old', action='write', position='append')
             else
@@ -2997,7 +3028,7 @@ contains
             write (*, *) " Aborting ..."
             call crash_exit
 
-        case (32)
+        case (33)
             if (im_fmm) then
                 open (51, file='fmm.log', status='old', action='write', position='append')
             else
@@ -3012,7 +3043,7 @@ contains
             write (*, *) "Aborting ..."
             call crash_exit
 
-        case (33)
+        case (34)
 
             if (io_stat .ne. 0) then
                 if (im_fmm) then
@@ -3030,7 +3061,7 @@ contains
                 call crash_exit
             end if
 
-        case (34)
+        case (35)
 
             if (im_fmm) then
                 open (52, file='fmm.log', status='old', action='write', position='append')
@@ -3048,7 +3079,7 @@ contains
             close (52)
             call crash_exit
 
-        case (35)
+        case (36)
 
             if (im_fmm) then
                 open (52, file='fmm.log', status='old', action='write', position='append')
@@ -3058,7 +3089,7 @@ contains
             write (52, *) "            Constraint File:          "//trim(tmpstr)
             close (52)
 
-        case (36)
+        case (37)
 
             if (mode == 0) then
                 if (im_fmm) then
@@ -3308,6 +3339,8 @@ contains
         implicit none
         integer :: junk
         integer :: i
+        character(len=256) :: line
+        character(len=10) :: date_str, time_str
         mnchar = 0
         do i = 1, 40
             if (cfg_filename(i:i) == '.') then
@@ -3318,8 +3351,17 @@ contains
 
         call check_inp(15, junk)
         open (21, file=cfg_filename(1:mnchar)//'trn', status='old')
-        read (21, *, IOSTAT=io_stat) xorig, yorig, zorig; call check_inp(16, junk)
+        
+        ! Read all lines to get to the last one
+        do
+            read (21, '(A)', IOSTAT=io_stat) line
+            if (io_stat /= 0) exit  ! Exit loop on end of file or error
+        end do
+        
+        ! Parse the last line to extract the last 3 columns (xorig, yorig, zorig)
+        read (line, *, IOSTAT=io_stat) date_str, time_str, xorig, yorig, zorig; call check_inp(16, junk)
         close (21)
+
         e_pos(:, 1) = e_pos(:, 1) - xorig
         e_pos(:, 2) = e_pos(:, 2) - yorig
         e_pos(:, 3) = e_pos(:, 3) - zorig
@@ -3443,6 +3485,8 @@ contains
 
         call MPI_BCAST(0, 1, MPI_INTEGER, 0, E4D_COMM, ierr)
         call PetscFinalize(perr)
+        write(*, *) "E4D has encountered a fatal error and is exiting."
+        write(*, *) "Please check the log files for more information."
         stop
     end subroutine crash_exit
     !__________________________________________________________________________

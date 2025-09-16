@@ -35,6 +35,7 @@ contains
         character*8 :: date
         character*10 :: time, year, month, day, hour, minute, second
         character*5 :: zone
+        character*256 :: hostname
         integer, dimension(10) :: values
 
         call DATE_AND_TIME(date, time, zone, values)
@@ -76,11 +77,13 @@ contains
         write (*, *) "All rights reserved."
         write (*, *)
         write (*, *) "Build Version: ", trim(BUILD_VERSION)
-        write (*, *) "Build Date: ", trim(BUILD_DATE), " ", trim(BUILD_TIME)
-        write (*, *) "Build Host: ", trim(BUILD_HOST)
+        write (*, *) "Build Date:    ", trim(BUILD_DATE), " ", trim(BUILD_TIME)
+        write (*, *) "Build Host:    ", trim(BUILD_HOST)
         write (*, *)
         write (*, *) "Current date: ", trim(month), " ", trim(day), ", ", trim(year)
         write (*, *) "Current time:  ", trim(hour), ":", trim(minute), ":", trim(second)
+        call hostnm(hostname)
+        write (*, *) "Current host:  ", trim(hostname)
         write (*, "(A,I7.7,A)") " Running on ", n_rank, " processing cores"
         !write(*,"(A,I7.7,A)")" (1 master process, and ",n_rank-1," slave processes)"
         write (*, *) "Please refer to e4d.log for further logging information ..."
@@ -99,11 +102,12 @@ contains
         write (51, *) "All rights reserved."
         write (51, *)
         write (51, *) "Build Version: ", trim(BUILD_VERSION)
-        write (51, *) "Build Date: ", trim(BUILD_DATE), " ", trim(BUILD_TIME)
-        write (51, *) "Build Host: ", trim(BUILD_HOST)
+        write (51, *) "Build Date:    ", trim(BUILD_DATE), " ", trim(BUILD_TIME)
+        write (51, *) "Build Host:    ", trim(BUILD_HOST)
         write (51, *)
         write (51, *) "Current date: ", trim(month), " ", trim(day), ", ", trim(year)
         write (51, *) "Current time:  ", trim(hour), ":", trim(minute), ":", trim(second)
+        write (51, *) "Current host:  ", trim(hostname)
         write (51, "(A,I7.7,A)") " Running on ", n_rank, " processing cores"
         !write(51,"(A,I7.7,A)")" (1 master process, and ",n_rank-1," slave processes)"
         write (51, *) "****************************************************************"
@@ -154,11 +158,25 @@ contains
             write (67, "(A,G12.5)") " RMS error is ", sqrt(chi2) !erms ! Increase witdth in format descriptor. - OFGN 1/10/23
             write (67, "(A,I7.7)") " Number of data culled is ", ncull
             if (cull_flag == 1) then
+                write (67, *)
                 write (67, *) "Prior to data culling ..."
                 !write(67,"(A,g15.5)") "   Phi_dat is ",phi_data0
                 write (67, "(A,G12.5)") "    Chi2 is ", chi20 ! Increase witdth in format descriptor. - OFGN 1/10/23
                 write (67, "(A,G12.5)") "    Mean error is ", errm0 ! Increase witdth in format descriptor. - OFGN 1/10/23
                 write (67, "(A,G12.5)") "    RMS error is ", sqrt(chi20) !erms0 ! Increase witdth in format descriptor. - OFGN 1/10/23
+            end if
+
+            ! Beta analysis - integrated from check_beta
+            if (iter > 0) then
+                write (67, *)
+                write (67, "(A,G12.5)") "Decrease in objective function is: ", ((PHI_T_prev - phi_tot) / PHI_T_prev)
+                if (abs((PHI_T_prev - phi_tot) / PHI_T_prev) <= del_obj) then
+                    ! If we're here then we've found the solution at this beta value
+                    ! If conv_opt = 2 then we're done - this is handled in check_beta
+                    write (67, "(A,G12.5,A,G12.5,A,G12.5)") "Decreasing beta by ", beta_red, " from ", beta, " to ", beta_red * beta
+                else 
+                    write (67, "(A,G12.5)") "Decrease in objective function is sufficient to continue at beta = ", beta
+                end if
             end if
 
             write (67, *) "***********************************************************************"
@@ -185,7 +203,11 @@ contains
         ! 4
         if (tag == 4) then
             open (67, file='e4d.log', status='old', action='write', position='append')
-            write (67, *) "SOLUTION CONVERGED"
+            write (67, *) 
+            write (67, *) "***********************************************************************"
+            write (67, *) "                          SOLUTION CONVERGED                           "
+            write (67, *) "***********************************************************************"
+            write (67, *)
             close (67)
         end if
 
@@ -241,7 +263,9 @@ contains
 
         if (tag == 54) then
             open (67, file='e4d.log', status='old', action='write', position='append')
+            write (67, *)
             write (67, *) "THE CHI-SQUARED VALUES ARE NOT ORDERED PROPERLY ... SKIPPING ADJUSTMENT"
+            write (67, *) "CONVERGED DUE TO LACK OF CHI2 IMPROVEMENT"
             close (67)
         end if
 
@@ -275,7 +299,7 @@ contains
 
         if (tag == 56) then
             open (67, file='e4d.log', status='old', action='write', position='append')
-            write (67, *) "_____________ADJUSTING FINAL SOLUTION FOR TIME_________________"
+            write (67, *) "*********** ADJUSTING FINAL SOLUTION FOR TIME ************"
             close (67)
         end if
 
@@ -447,6 +471,18 @@ contains
 
         if (tag == 73) then
             write (*, "(A,I3.3,A)") "---------------------- END ITERATION ", iter, " ----------------------"
+        end if
+
+        if (tag == 74) then
+            open (67, file='e4d.log', status='old', action='write', position='append')
+            write (67, *)
+            if (allocated(best_sigma_re) .and. best_iter >= 0) then
+                write (67, *) "IP INVERSION: Using best DC model from iteration", best_iter
+                write (67, *) "Best DC chi2:", best_chi2, "Final DC chi2:", chi2
+            else
+                write (67, *) "IP INVERSION: No best DC model tracked, using final DC model"
+            end if
+            close (67)
         end if
 
         ! 100

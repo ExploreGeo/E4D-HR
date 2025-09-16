@@ -1,0 +1,4 @@
+
+#requiresdefine   'PETSC_USE_FORTRAN_BINDINGS'
+#requirespackage 'PETSC_HAVE_PARTY'
+CPPFLAGS  = ${PARTY_INCLUDE}

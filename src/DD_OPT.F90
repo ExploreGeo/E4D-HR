@@ -187,9 +187,9 @@ contains
        !check for convergence
        call check_convergence
        
-       call nreport(1)
        !see if we need to reduce beta
        call check_beta
+       call nreport(1)
        
        call treport(-1)
        call nreport(73)

@@ -1,0 +1,127 @@
+FAST_AR_FLAGS = Scq
+AR_FLAGS = cr
+AR_ARGFILE = yes
+PCC_AT_FILE = 1
+C_VERSION = Intel(R) oneAPI DPC++/C++ Compiler 2025.0.0 (2025.0.0.20241008)
+MPICC_SHOW = icx -I\"/opt/intel/oneapi/mpi/2021.14/include\" -L\"/opt/intel/oneapi/mpi/2021.14/lib\" -L\"/opt/intel/oneapi/mpi/2021.14/lib\" -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker \"/opt/intel/oneapi/mpi/2021.14/lib\" -Xlinker -rpath -Xlinker \"/opt/intel/oneapi/mpi/2021.14/lib\" -lmpifort -lmpi -ldl -lrt -lpthread
+Cxx_VERSION = Intel(R) oneAPI DPC++/C++ Compiler 2025.0.0 (2025.0.0.20241008)
+MPICXX_SHOW = icpx -I"/opt/intel/oneapi/mpi/2021.14/include" -L"/opt/intel/oneapi/mpi/2021.14/lib" -L"/opt/intel/oneapi/mpi/2021.14/lib" -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker "/opt/intel/oneapi/mpi/2021.14/lib" -Xlinker -rpath -Xlinker "/opt/intel/oneapi/mpi/2021.14/lib" -lmpicxx -lmpifort -lmpi -ldl -lrt -lpthread
+FC_VERSION = ifx (IFX) 2025.0.0 20241008
+MPIFC_SHOW = ifx -I"/opt/intel/oneapi/mpi/2021.14/include/mpi" -I"/opt/intel/oneapi/mpi/2021.14/include" -I"/opt/intel/oneapi/mpi/2021.14/include/mpi" -L"/opt/intel/oneapi/mpi/2021.14/lib" -L"/opt/intel/oneapi/mpi/2021.14/lib" -Xlinker --enable-new-dtags -Xlinker -rpath -Xlinker "/opt/intel/oneapi/mpi/2021.14/lib" -Xlinker -rpath -Xlinker "/opt/intel/oneapi/mpi/2021.14/lib" -lmpifort -lmpi -ldl -lrt -lpthread
+C_DEPFLAGS = -MMD -MP
+CXX_DEPFLAGS = -MMD -MP
+FC_DEFINE_FLAG = -D
+wPETSC_DIR = /srv/wrk/E4D/E4D-HR-Master-250818/lib/petsc-3.21.4
+CC_FLAGS =  -fPIC -Wall -Wwrite-strings -Wno-unknown-pragmas -fstack-protector -Qunused-arguments -fvisibility=hidden -O2 -march=native -mtune=native
+CXXPP_FLAGS = 
+CXX_FLAGS =  -Wall -Wwrite-strings -Wno-strict-aliasing -Wno-unknown-pragmas -fstack-protector -fvisibility=hidden -O2 -march=native -mtune=native  -std=gnu++20 -fPIC
+CXX_LINKER = mpiicpc -cxx=icpx
+CXX_LINKER_FLAGS =    -Wall -Wwrite-strings -Wno-strict-aliasing -Wno-unknown-pragmas -fstack-protector -fvisibility=hidden -O2 -march=native -mtune=native
+CPP_FLAGS = 
+PCC = mpiicc -cc=icx
+PCC_FLAGS = $(CC_FLAGS)
+CC_SUFFIX = o
+PCC_LINKER = mpiicc -cc=icx
+PCC_LINKER_FLAGS =    -fPIC -Wall -Wwrite-strings -Wno-unknown-pragmas -fstack-protector -Qunused-arguments -fvisibility=hidden -O2 -march=native -mtune=native
+CC_LINKER_SUFFIX = 
+FPP_FLAGS = 
+FC_FLAGS =  -fPIC -O2 -march=native -mtune=native  
+FC_SUFFIX = o
+FC_LINKER = mpiifort -fc=ifx
+FC_LINKER_FLAGS =    -fPIC -O2 -march=native -mtune=native 
+FC_MODULE_FLAG = -I
+FC_MODULE_OUTPUT_FLAG = -module 
+SL_LINKER = mpiicc -cc=icx
+SL_LINKER_FLAGS = ${PCC_LINKER_FLAGS}
+SL_LINKER_SUFFIX = so
+SL_LINKER_LIBS = ${PETSC_EXTERNAL_LIB_BASIC}
+PETSC_LANGUAGE = CONLY
+PETSC_SCALAR = real
+PETSC_PRECISION = double
+MKL_SPARSE_LIB = 
+MKL_SPARSE_INCLUDE = 
+MKL_SPARSE_OPTIMIZE_LIB = 
+MKL_SPARSE_OPTIMIZE_INCLUDE = 
+BLASLAPACK_LIB = -Wl,-rpath,/opt/intel/oneapi/mkl/2025.0/lib/intel64 -L/opt/intel/oneapi/mkl/2025.0/lib/intel64 -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread
+BLASLAPACK_INCLUDE = 
+PTHREAD_LIB = 
+PTHREAD_INCLUDE = 
+MATHLIB_LIB = 
+MATHLIB_INCLUDE = 
+REGEX_LIB = 
+REGEX_INCLUDE = 
+MPI_LIB = 
+MPI_INCLUDE = 
+X_LIB = -lX11
+X_INCLUDE = 
+PETSC_EXTERNAL_LIB_BASIC = -Wl,-rpath,/opt/intel/oneapi/mkl/2025.0/lib/intel64 -L/opt/intel/oneapi/mkl/2025.0/lib/intel64 -fortlib -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lX11 -lstdc++
+PETSC_CC_INCLUDES = -I/srv/wrk/E4D/E4D-HR-Master-250818/lib/petsc-3.21.4/include -I/srv/wrk/E4D/E4D-HR-Master-250818/lib/petsc-3.21.4/arch-linux-c-opt/include
+PETSC_CC_INCLUDES_INSTALL = -I/srv/wrk/E4D/E4D-HR-Master-250818/lib/petsc-3.21.4/include -I/srv/wrk/E4D/E4D-HR-Master-250818/lib/petsc-3.21.4/arch-linux-c-opt/include
+PETSC_FC_INCLUDES = -I/srv/wrk/E4D/E4D-HR-Master-250818/lib/petsc-3.21.4/include -I/srv/wrk/E4D/E4D-HR-Master-250818/lib/petsc-3.21.4/arch-linux-c-opt/include
+PETSC_FC_INCLUDES_INSTALL = -I/srv/wrk/E4D/E4D-HR-Master-250818/lib/petsc-3.21.4/include -I/srv/wrk/E4D/E4D-HR-Master-250818/lib/petsc-3.21.4/arch-linux-c-opt/include
+LIBNAME = ${INSTALL_LIB_DIR}/libpetsc.${AR_LIB_SUFFIX}
+SHLIBS = libpetsc
+PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/srv/wrk/E4D/E4D-HR-Master-250818/lib/petsc-3.21.4/arch-linux-c-opt/lib -L/srv/wrk/E4D/E4D-HR-Master-250818/lib/petsc-3.21.4/arch-linux-c-opt/lib -Wl,-rpath,/opt/intel/oneapi/mkl/2025.0/lib/intel64 -L/opt/intel/oneapi/mkl/2025.0/lib/intel64 -fortlib -lpetsc -lmkl_intel_lp64 -lmkl_core -lmkl_sequential -lpthread -lX11 -lstdc++
+PETSC_SYS_LIB = ${PETSC_WITH_EXTERNAL_LIB}
+PETSC_VEC_LIB = ${PETSC_WITH_EXTERNAL_LIB}
+PETSC_MAT_LIB = ${PETSC_WITH_EXTERNAL_LIB}
+PETSC_DM_LIB = ${PETSC_WITH_EXTERNAL_LIB}
+PETSC_KSP_LIB = ${PETSC_WITH_EXTERNAL_LIB}
+PETSC_SNES_LIB = ${PETSC_WITH_EXTERNAL_LIB}
+PETSC_TS_LIB = ${PETSC_WITH_EXTERNAL_LIB}
+PETSC_TAO_LIB = ${PETSC_WITH_EXTERNAL_LIB}
+PETSC_LIB = ${PETSC_TAO_LIB}
+PETSC_LIB_BASIC = -lpetsc
+CONFIGURE_OPTIONS = --with-debugging=0 --with-fc=\"mpiifort -fc=ifx\" --with-cc=\"mpiicc -cc=icx\" --with-cxx=\"mpiicpc -cxx=icpx\" --with-blaslapack-dir=/opt/intel/oneapi/mkl/2025.0 FOPTFLAGS=\"-O2 -march=native -mtune=native\" COPTFLAGS=\"-O2 -march=native -mtune=native\" CXXOPTFLAGS=\"-O2 -march=native -mtune=native\"
+MKDIR = /usr/bin/mkdir -p
+SHELL = /usr/bin/bash
+SED = /usr/bin/sed
+SEDINPLACE = /usr/bin/sed -i
+MV = /usr/bin/mv
+CP = /usr/bin/cp
+GREP = /usr/bin/grep
+RM = /usr/bin/rm -f
+DIFF = /usr/bin/diff -w
+PYTHON = /usr/bin/python3
+M4 = /usr/bin/m4
+CC = mpiicc -cc=icx
+CPP = mpiicc -cc=icx -E
+CXX = mpiicpc -cxx=icpx
+CXXPP = mpiicpc -cxx=icpx -E
+FC = mpiifort -fc=ifx
+FPP = mpiifort -fc=ifx -E
+AR = /usr/bin/ar
+RANLIB = /usr/bin/ranlib
+AR_LIB_SUFFIX = a
+LD_SHARED = mpiicc -cc=icx
+DYNAMICLINKER = mpiicc -cc=icx
+CC_LINKER_SLFLAG = -Wl,-rpath,
+FC_LINKER_SLFLAG = -Wl,-rpath,
+CLANGUAGE = C
+EXEFLAGS = -Wl,-export-dynamic
+GIT = git
+PREFIXDIR = /srv/wrk/E4D/E4D-HR-Master-250818/lib/petsc-3.21.4/arch-linux-c-opt
+PETSC_SCALAR_SIZE = 64
+PETSC_INDEX_SIZE = 32
+MAKE = /usr/bin/gmake
+MAKE_USER = make
+OMAKE_PRINTDIR = /usr/bin/gmake --print-directory
+OMAKE = /usr/bin/gmake --no-print-directory
+MAKE_PAR_OUT_FLG = --output-sync=recurse
+MAKE_NP = 5
+MAKE_TEST_NP = 3
+MAKE_LOAD = 9.0
+NPMAX = 6
+SONAME_FUNCTION = $(1).$(SL_LINKER_SUFFIX).$(2)
+SL_LINKER_FUNCTION =  -shared  -fPIC -Wall -Wwrite-strings -Wno-unknown-pragmas -fstack-protector -Qunused-arguments -fvisibility=hidden -O2 -march=native -mtune=native -Wl,-soname,$(call SONAME_FUNCTION,$(notdir $(1)),$(2))
+BUILDSHAREDLIB = yes
+GDB = /usr/bin/gdb
+DSYMUTIL = true
+MPIEXEC = /opt/intel/oneapi/mpi/2021.14/bin/mpiexec
+HOSTNAME = hostname
+PING = ping
+MPIEXEC_TAIL = 
+PYTHON_EXE = "/usr/bin/python3"
+CMAKE = /usr/bin/cmake
+CTEST = /usr/bin/ctest
+PETSC_TEST_OPTIONS = -checkfunctionlist -use_gpu_aware_mpi 0

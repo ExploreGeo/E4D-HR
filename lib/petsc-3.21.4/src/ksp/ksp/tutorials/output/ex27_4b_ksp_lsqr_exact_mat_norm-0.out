@@ -1,0 +1,61 @@
+Failed to load initial guess, so use a vector of all zeros.
+  0 KSP resid norm 4.711147840694e-03
+  1 KSP resid norm 7.513282847556e-04 normal eq resid norm 3.098804880147e-04 matrix norm 2.927126163375e-01
+  2 KSP resid norm 4.840345731232e-04 normal eq resid norm 1.261446795039e-04 matrix norm 6.171930698604e-01
+  3 KSP resid norm 3.832465485873e-04 normal eq resid norm 7.656547596959e-05 matrix norm 7.817659229110e-01
+  4 KSP resid norm 3.283538333828e-04 normal eq resid norm 5.488113069636e-05 matrix norm 9.101101438378e-01
+  5 KSP resid norm 2.912546272444e-04 normal eq resid norm 4.567141764855e-05 matrix norm 1.018054877675e+00
+  6 KSP resid norm 2.622424710761e-04 normal eq resid norm 3.834226172302e-05 matrix norm 1.121192586539e+00
+  7 KSP resid norm 2.429897040986e-04 normal eq resid norm 2.977486698140e-05 matrix norm 1.224647034903e+00
+  8 KSP resid norm 2.294628089189e-04 normal eq resid norm 2.232710434359e-05 matrix norm 1.315151356694e+00
+  9 KSP resid norm 2.203906314870e-04 normal eq resid norm 2.197439809805e-05 matrix norm 1.389162490870e+00
+ 10 KSP resid norm 2.100306490607e-04 normal eq resid norm 2.384200697256e-05 matrix norm 1.468461373141e+00
+ 11 KSP resid norm 1.979553835780e-04 normal eq resid norm 2.380268016784e-05 matrix norm 1.548947897420e+00
+ 12 KSP resid norm 1.830040085624e-04 normal eq resid norm 2.525017954390e-05 matrix norm 1.616698082623e+00
+ 13 KSP resid norm 1.665218877035e-04 normal eq resid norm 2.369765002157e-05 matrix norm 1.684137819819e+00
+ 14 KSP resid norm 1.536316968352e-04 normal eq resid norm 2.031854974832e-05 matrix norm 1.752107394424e+00
+ 15 KSP resid norm 1.435913875335e-04 normal eq resid norm 1.806102719624e-05 matrix norm 1.818862692779e+00
+ 16 KSP resid norm 1.331959321705e-04 normal eq resid norm 1.608443027470e-05 matrix norm 1.879079443988e+00
+ 17 KSP resid norm 1.238974644261e-04 normal eq resid norm 1.465499715133e-05 matrix norm 1.931080724484e+00
+ 18 KSP resid norm 1.167213983714e-04 normal eq resid norm 1.310201466978e-05 matrix norm 1.985772904277e+00
+ 19 KSP resid norm 1.106641763981e-04 normal eq resid norm 1.077202889536e-05 matrix norm 2.041407803367e+00
+ 20 KSP resid norm 1.065743820434e-04 normal eq resid norm 8.410407365663e-06 matrix norm 2.093369933181e+00
+ 21 KSP resid norm 1.036121397006e-04 normal eq resid norm 8.432965794013e-06 matrix norm 2.139023314937e+00
+ 22 KSP resid norm 1.011693557766e-04 normal eq resid norm 6.288088131558e-06 matrix norm 2.198135886327e+00
+ 23 KSP resid norm 9.917803323778e-05 normal eq resid norm 6.665391336398e-06 matrix norm 2.238292375758e+00
+ 24 KSP resid norm 9.733332616453e-05 normal eq resid norm 5.736342713992e-06 matrix norm 2.289949432262e+00
+ 25 KSP resid norm 9.544817911590e-05 normal eq resid norm 7.790741260979e-06 matrix norm 2.329202664372e+00
+ 26 KSP resid norm 9.251632357836e-05 normal eq resid norm 7.657700165310e-06 matrix norm 2.387956297038e+00
+ 27 KSP resid norm 8.995239753283e-05 normal eq resid norm 7.077185545827e-06 matrix norm 2.435998367191e+00
+ 28 KSP resid norm 8.675250922322e-05 normal eq resid norm 7.718894511613e-06 matrix norm 2.475828844135e+00
+ 29 KSP resid norm 8.295271418704e-05 normal eq resid norm 8.381416159347e-06 matrix norm 2.515451688481e+00
+ 30 KSP resid norm 7.925189347930e-05 normal eq resid norm 7.061464122195e-06 matrix norm 2.559972429201e+00
+ 31 KSP resid norm 7.702758294248e-05 normal eq resid norm 5.880489009667e-06 matrix norm 2.603838131516e+00
+ 32 KSP resid norm 7.523245558055e-05 normal eq resid norm 5.380926199373e-06 matrix norm 2.646878850437e+00
+ 33 KSP resid norm 7.381034194904e-05 normal eq resid norm 4.865267505391e-06 matrix norm 2.692305095110e+00
+ 34 KSP resid norm 7.211448862804e-05 normal eq resid norm 5.000965002199e-06 matrix norm 2.730537910577e+00
+ 35 KSP resid norm 7.058522637900e-05 normal eq resid norm 4.344876960411e-06 matrix norm 2.769748100533e+00
+Linear solve converged due to CONVERGED_RTOL_NORMAL iterations 35
+KSP Object: 2 MPI processes
+  type: lsqr
+    norm of standard error 4.77552e-05, iterations 35
+    using inexact matrix norm
+  maximum iterations=200, initial guess is zero
+  tolerances: relative=0.001, absolute=1e-50, divergence=10000.
+  left preconditioning
+  using UNPRECONDITIONED norm type for convergence test
+PC Object: 2 MPI processes
+  type: none
+  linear system matrix followed by preconditioner matrix:
+  Mat Object: A 2 MPI processes
+    type: mpiaij
+    rows=4889, cols=841
+    total: nonzeros=110171, allocated nonzeros=110171
+    total number of mallocs used during MatSetValues calls=0
+      using I-node (on process 0) routines: found 1844 nodes, limit used is 5
+  Mat Object: 2 MPI processes
+    type: normalh
+    rows=841, cols=841
+KSP type: lsqr
+Number of iterations =  35
+Residual norm 7.05852e-05

@@ -1,8 +1,5 @@
 ! Changelog
-! 27/4/23 - OFGN
-! Add format specifier to force single line output with the Intel Fortran Compiler. - OFGN 27/4/23
-! Increased precision to x_origin, y_origin and z_origin. Enabled the use of translate_flag OFGN 08/5/25
-! Added date and time to the trn file so we know which run produced it - @DP 11/08/25
+
 
 module mesh
 
@@ -339,8 +336,8 @@ contains
         ! Added date and time to the trn file so we know which run produced it - @DP
         call date_and_time(values=dt)
         open (22, file=trim(mesh_prefix)//".trn", status='unknown', position='append')
-        write (22, '(I4.4,"-",I2.2,"-",I2.2,1X,I2.2,":",I2.2,":",I2.2,3(1X,ES20.12))') &
-            dt(1), dt(2), dt(3), dt(5), dt(6), dt(7), x_origin, y_origin, z_origin
+        write (22, '(I4.4,A1,I2.2,A1,I2.2,1X,I2.2,A1,I2.2,A1,I2.2,3(1X,ES20.12))') &
+            dt(1), '-', dt(2), '-', dt(3), dt(5), ':', dt(6), ':', dt(7), x_origin, y_origin, z_origin
         close(22)
 
         !!CONSTRUCT THE TRIANGLE .poly INPUT FILE
@@ -784,26 +781,30 @@ contains
     subroutine check_nodes(mpre)
         !!checks to make sure nodes have correct boundary markers
         character*40 :: mpre
+        character(len=100) :: line
+        character(len=10) :: date_str, time_str
         logical :: exst
-        integer :: i, j, k, l, ecount, npre                          !counters
-        integer :: ncpts                                        !number of control points
+        integer :: i, j, k, l, ecount, npre                             !counters
+        integer :: ncpts                                                !number of control points
         integer :: nplc
-        integer :: nnods                                        !number of nodes
-        integer :: nedge                                        !number of edge points
+        integer :: nnods                                                !number of nodes
+        integer :: nedge                                                !number of edge points
+        integer :: junk
 
-        integer, dimension(:), allocatable :: bpts, cbpts, fbpts  !boundary flags
-        integer, dimension(:), allocatable :: edge_seq          !boundary flags
+        integer, dimension(:), allocatable :: bpts, cbpts, fbpts        !boundary flags
+        integer, dimension(:), allocatable :: edge_seq                  !boundary flags
 
-        integer, dimension(:, :), allocatable :: plc             !plc definitions
-        real*8 :: x, y, z, pd, a1, a2, a3, dp, dist, lb                  !points
+        integer, dimension(:, :), allocatable :: plc                    !plc definitions
+        real*8 :: x, y, z, pd, a1, a2, a3, dp, dist, lb                 !points
         real*8 :: xp, yp, zp, t, mx, my, mz, tl
-        real*8, dimension(3) :: p1, p2, p3, N, pt, v1, v2, v3          !points and normal
-        real*8, dimension(:, :), allocatable :: cpts             !control points
-        real*8, dimension(:, :), allocatable :: nods             !node points
-        real*8, dimension(:, :), allocatable :: edges            !node points
-        real*8, dimension(:), allocatable :: edge_sep            !node points
-        real*8, dimension(3, 3) :: M                             !matrix
+        real*8, dimension(3) :: p1, p2, p3, N, pt, v1, v2, v3           !points and normal
+        real*8, dimension(:, :), allocatable :: cpts                    !control points
+        real*8, dimension(:, :), allocatable :: nods                    !node points
+        real*8, dimension(:, :), allocatable :: edges                   !node points
+        real*8, dimension(:), allocatable :: edge_sep                   !node points
+        real*8, dimension(3, 3) :: M                                    !matrix
         real*8, parameter :: dtl = 1e-3
+
 
         k = len_trim(mpre)
         do i = 1, k
@@ -815,9 +816,18 @@ contains
         end do
 
         !!read the mesh translation
+        call check_inp(15, junk)
         open (20, file=mpre(1:npre)//'trn', status='old', action='read')
-        read (20, *) pt
-        close(20)
+
+        ! Read all lines to get to the last one
+        do
+            read (20, '(A)', IOSTAT=io_stat) line
+            if (io_stat /= 0) exit
+        end do
+        close (20)
+        
+        ! Parse the last line to extract the last 3 columns (xorig, yorig, zorig)
+        read (line, *, IOSTAT=io_stat) date_str, time_str, pt(1), pt(2), pt(3); call check_inp(16, junk)
 
         !!read the config file
         open (20, file=mpre(1:npre)//'cfg', status='old', action='read')

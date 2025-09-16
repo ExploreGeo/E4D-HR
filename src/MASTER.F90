@@ -1107,6 +1107,7 @@ contains
     end subroutine update_sigma
     !____________________________________________________________________
 
+    ! This subroutine is not currently used.
     !____________________________________________________________________
     subroutine update_sigmai
         implicit none

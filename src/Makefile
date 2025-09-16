@@ -96,7 +96,7 @@ build_info.inc:
 	echo "character(len=*), parameter :: BUILD_VERSION = '1.0.0'" >> build_info.inc
 	echo "character(len=*), parameter :: BUILD_DATE = '$(shell date +%F)'" >> build_info.inc
 	echo "character(len=*), parameter :: BUILD_TIME = '$(shell date +%T)'" >> build_info.inc
-	echo "character(len=*), parameter :: BUILD_HOST = '$(shell hostname -I | awk '{print $$1}')'" >> build_info.inc
+	echo "character(len=*), parameter :: BUILD_HOST = '$(shell hostname | awk '{print $$1}')'" >> build_info.inc
 
 .PHONY: clean build_info.inc
 clean :

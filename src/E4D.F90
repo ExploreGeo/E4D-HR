@@ -378,9 +378,9 @@ program main
             !check for convergence
             call check_convergence
 
-            call nreport(1)
             !see if we need to reduce beta
             call check_beta
+            call nreport(1)
 
         end if
 
@@ -390,8 +390,8 @@ program main
     end do
 
     !adjust the solution to the target chi-squared
-    !if the solution was updated from the starting model
-    if (iter > 0) then
+    !if the solution was updated from the starting model and converged
+    if (iter > 0 .and. con_flag) then
         iter = iter + 1
         call nreport(4)
         call nreport(56)
@@ -460,6 +460,10 @@ contains
         !set the complex inversion flag
         invi = .true.
 
+        ! Restore the best DC reference model if available
+        call restore_best_dc_model()
+        call nreport(74)
+
         !set invi true on slaves
         call send_command(216)
 
@@ -472,7 +476,11 @@ contains
         !call send_J_on_off
 
         call send_sigmai
+
+        ! Reset iteration number and chi2 history
         iter = 0
+        if (allocated(chi2_hist)) chi2_hist = huge(1.0)
+        if (allocated(chi2_change)) chi2_change = huge(1.0)
 
         !check complex data convergence
         call check_convergence
@@ -516,10 +524,15 @@ contains
             call treport(2)
             call check_convergence
 
-            call nreport(1)
             call check_beta
+            call nreport(1)
 
         end do
+        
+        !report solution convergence for IP inversion only if converged
+        if (iter > 0 .and. con_flag) then
+            call nreport(4)
+        end if
         return
     end subroutine complex_inv
     !____________________________________________________________________
@@ -639,8 +652,8 @@ contains
                 call treport(2)
 
                 call check_convergence
-                call nreport(1)
                 call check_beta
+                call nreport(1)
                 call write_sigiter
 
             end do
@@ -695,9 +708,9 @@ contains
 
         return
     end subroutine time_lapse_1
-!____________________________________________________________________
+    !____________________________________________________________________
 
-!____________________________________________________________________
+    !____________________________________________________________________
     subroutine beta_line_search
 
         !________________________________________________________________________
@@ -713,9 +726,9 @@ contains
         real, dimension(n_elements) :: stemp, snew
         real, dimension(nm) :: tdpd
         real, dimension(5) :: btest, x2, dnorm, mnorm, obj, Y
-!!$    real, dimension(5,3) :: A
-!!$    real, dimension(3,3) :: ATA,INDX,ATAI
-!!$    real, dimension(3) :: ATY
+        !!$    real, dimension(5,3) :: A
+        !!$    real, dimension(3,3) :: ATA,INDX,ATAI
+        !!$    real, dimension(3) :: ATY
         real :: cx2, cdnorm, cmnorm, cobj, min_obj, chi_last, chi_min
         integer :: i, min_ibet
 

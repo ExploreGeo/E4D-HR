@@ -1,0 +1,1 @@
+static const char *petscconfigureoptions = "--with-debugging=0 --with-fc=\"mpiifort -fc=ifx\" --with-cc=\"mpiicc -cc=icx\" --with-cxx=\"mpiicpc -cxx=icpx\" --with-blaslapack-dir=/opt/intel/oneapi/mkl/2025.0 FOPTFLAGS=\"-O2 -march=native -mtune=native\" COPTFLAGS=\"-O2 -march=native -mtune=native\" CXXOPTFLAGS=\"-O2 -march=native -mtune=native\"";

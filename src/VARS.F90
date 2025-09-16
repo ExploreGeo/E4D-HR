@@ -50,6 +50,7 @@ implicit none
   integer :: conv_opt                                      !!convergence option
   integer :: min_initer,max_initer                         !!min/max inner iterations
   integer :: bound_flag                                    !!boundary options flag
+  integer :: chi2_hist_size = 6                            !!number of iterations used for chi2 convergence history
   integer :: nnodes                                        !!number of nodes
   integer :: n_elements                                         !!number of elements (same as nsig)
   integer :: nfaces                                        !!number of faces
@@ -87,6 +88,7 @@ implicit none
   real :: my_jbt
   real :: sigma_0                                         !!average apparent conductivity
   real :: phase_0                                       !!average apparent phase
+  real :: chi2_conv_thresh = 0.0                          !!threshold for chi2 convergence criterion
 
   !Logicals
   logical, dimension(:), allocatable :: J_on_off           !!which elements to estimate
