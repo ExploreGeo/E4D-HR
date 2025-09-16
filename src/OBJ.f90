@@ -1,6 +1,3 @@
-! Changelog 
-! New array to store the last few chi2 values to check for convergence
-
 module obj
 
     use input
@@ -111,9 +108,9 @@ module obj
                         ncull = ncull + 1
                     end if
                 end do 
-                ncull = nm - int(sum(Wd_cull))
-                
             end if
+            
+            ncull = nm - int(sum(Wd_cull))
             
             if (invi) then
                 dat_vec = Wdi * Wd_cull * (dobsi - dpredi)

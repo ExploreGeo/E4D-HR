@@ -113,6 +113,7 @@ implicit none
   logical :: jaco_out_opt = .false.                        !!flag for outputting the jacobian matrix in mode 2
   logical :: jaco_ascii_opt = .false.                      !!jaco output format flag
   logical :: vtk_flag = .true.
+
   
   !Integer Arrays
   integer, dimension(:,:), allocatable :: s_conf           !!abmn survey configuration

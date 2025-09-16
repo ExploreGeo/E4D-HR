@@ -1,14 +1,3 @@
-! Changelog 
-! 7/4/23 - OFGN
-! Use phase rather than phase/resistance
-! Max phase set to the current measurement rather than the running total
-! Min phase set to the current measurement rather than the running total
-! 1/10/23 - OFGN
-! Increase witdth in format descriptor.
-! 07/08/24 - DP
-! Added sanity checks for geometric factor in calculate_mean_model and calculate_median_model
-! If geometric factor is negative, it is forced to be positive and a warning is written to the log file.
-
 module v_analytic
 
     use vars

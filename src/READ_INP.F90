@@ -1,7 +1,3 @@
-! Changelog
-! 18/08/25
-! Added the chi2 history and threshold values to the inversion options file.
-
 module input
     !_________________________________________________________________
   !! Author: Tim Johnson
@@ -223,13 +219,10 @@ contains
             read (10, *, IOSTAT=io_stat) sig_filename; call check_inp(4, junk)
 
             ! check for alpha characters and make them all lower case
-            chk_sigfile = sig_filename
-            chk_sigfile = lcase(chk_sigfile)
-            if (trim(chk_sigfile) == "average") then
+            chk_sigfile = lcase(trim(sig_filename))
+            if (chk_sigfile == "average" .or. chk_sigfile == "mean") then
                 use_mean = .true.
-            else if (trim(chk_sigfile) == "mean") then
-                use_mean = .true.
-            else if (trim(chk_sigfile) == "median") then
+            else if (chk_sigfile == "median") then
                 use_median = .true.
             end if
             read (10, *) out_file; call check_inp(5, junk)
@@ -387,6 +380,131 @@ contains
 
     end subroutine read_input
     !___________________________________________________________________________________
+
+    subroutine read_inputII
+        
+        implicit none
+
+        character*40 :: smode
+        character*40 :: chk_sigfile                              !!temp variable to check conductivity file value in e4d.inp
+
+        integer :: nchar, junk, i, check, j
+        logical :: exst
+        logical :: wdwarn = .false.
+
+        call check_inp(0, junk)
+        open (10, file='e4d_inp.inp', status='old', action='read')
+        read (10, *, IOSTAT=io_stat) smode; call check_inp(101, junk)
+
+        ! check for alpha characters and make them all lower case
+        smode = lcase(smode)
+
+        if (trim(adjustl(smode)) == 'analytic' .or. trim(adjustl(smode)) == 'ertanalytic') then
+            analytic = .true.
+            mode = 2; call check_inp(1, junk)
+        else
+            select case (trim(adjustl(smode)))
+            case ('ert0')
+                mode = 0; call check_inp(1, junk)
+            case ('ert1')
+                mode = 1; call check_inp(1, junk)
+            case ('ert2')
+                mode = 2; call check_inp(1, junk)
+            case ('ert3')
+                mode = 3; call check_inp(1, junk)
+            case ('ert4')
+                mode = 4; call check_inp(1, junk)
+            case ('ert5')
+                mode = 5; call check_inp(1, junk)
+            case ('dcr0')
+                mode = 0; call check_inp(1, junk)
+            case ('dcr1')
+                mode = 1; call check_inp(1, junk)
+            case ('dcr2')
+                mode = 2; call check_inp(1, junk)
+            case ('dcr3')
+                mode = 3; call check_inp(1, junk)
+            case ('dcr4')
+                mode = 4; call check_inp(1, junk)
+            case ('dcr5')
+                mode = 5; call check_inp(1, junk)
+
+            case ('sip0')
+                mode = 0; call check_inp(1, junk)
+                i_flag = .true.
+            case ('sip1')
+                mode = 21; call check_inp(1, junk)
+            case ('sip2')
+                mode = 22; call check_inp(1, junk)
+            case ('sip3')
+                mode = 23; call check_inp(1, junk)
+            case ('sip4')
+                mode = 24; call check_inp(1, junk)
+            case ('ip0')
+                mode = 0; call check_inp(1, junk)
+                i_flag = .true.
+            case ('ip1')
+                mode = 21; call check_inp(1, junk)
+            case ('ip2')
+                mode = 22; call check_inp(1, junk)
+            case ('ip3')
+                mode = 23; call check_inp(1, junk)
+            case ('ip4')
+                mode = 24; call check_inp(1, junk)
+
+            case ('erttank0')
+                mode = 0; call check_inp(1, junk)
+                tank_flag = .true.
+            case ('erttank1')
+                mode = 31; call check_inp(1, junk)
+            case ('erttank2')
+                mode = 32; call check_inp(1, junk)
+            case ('erttank3')
+                mode = 33; call check_inp(1, junk)
+            case ('erttank4')
+                mode = 34; call check_inp(1, junk)
+            case ('erttank5')
+                mode = 35; call check_inp(1, junk)
+            case ('dcrtank0')
+                mode = 0; call check_inp(1, junk)
+                tank_flag = .true.
+            case ('dcrtank1')
+                mode = 31; call check_inp(1, junk)
+            case ('dcrtank2')
+                mode = 32; call check_inp(1, junk)
+            case ('dcrtank3')
+                mode = 33; call check_inp(1, junk)
+            case ('dcrtank4')
+                mode = 34; call check_inp(1, junk)
+            case ('dcrtank5')
+                mode = 35; call check_inp(1, junk)
+
+            case ('iptank0')
+                mode = 0; call check_inp(1, junk)
+                tank_flag = .true.
+                i_flag = .true.
+            case ('iptank1')
+                mode = 41; call check_inp(1, junk)
+            case ('iptank2')
+                mode = 42; call check_inp(1, junk)
+            case ('iptank3')
+                mode = 43; call check_inp(1, junk)
+            case ('iptank4')
+                mode = 44; call check_inp(1, junk)
+            case DEFAULT
+                read (smode, *, IOSTAT=io_stat) mode; call check_inp(1, junk)
+            end select
+        end if
+
+    !! if running in mode zero attempt the read the input files, report, and exit
+        if (mode == 0) then
+            !call test_read
+            return
+        end if
+
+        
+
+    end subroutine read_inputII
 
     !__________________________________________________________________________________
     subroutine get_inv_optsII
@@ -1628,14 +1746,14 @@ contains
             call crash_exit
 
         case (15)
-            inquire (file=cfg_filename(1:mnchar)//'trn', exist=exst)
+            inquire (file='mesh/'//cfg_filename(1:mnchar)//'trn', exist=exst)
             if (.not. exst) then
                 open (51, file='e4d.log', status='old', action='write', position='append')
                 write (51, *)
-                write (51, *) " Cannot find the mesh translation file: ", trim(cfg_filename(1:mnchar))//'trn'
+                write (51, *) " Cannot find the mesh translation file: ", 'mesh/'//trim(cfg_filename(1:mnchar))//'trn'
                 write (51, *) " Aborting..."
                 write (*, *)
-                write (*, *) " Cannot find the mesh translation file: ", trim(cfg_filename(1:mnchar))//'trn'
+                write (*, *) " Cannot find the mesh translation file: ", 'mesh/'//trim(cfg_filename(1:mnchar))//'trn'
                 write (*, *) " Aborting..."
                 close (51)
                 call crash_exit
@@ -1646,12 +1764,12 @@ contains
                 open (51, file='e4d.log', status='old', action='write', position='append')
                 write (51, *)
                 write (51, *) " There was a problem reading the mesh "
-                write (51, *) " translation numbers in: ", trim(cfg_filename(1:mnchar))//'trn'
+                write (51, *) " translation numbers in: ", 'mesh/'//trim(cfg_filename(1:mnchar))//'trn'
                 write (51, *) " Aborting ... "
                 close (51)
                 write (*, *)
                 write (*, *) " There was a problem reading the mesh "
-                write (*, *) " translation numbers in: ", trim(cfg_filename(1:mnchar))//'trn'
+                write (*, *) " translation numbers in: ", 'mesh/'//trim(cfg_filename(1:mnchar))//'trn'
                 write (*, *) " Aborting ... "
                 close (51)
                 call crash_exit
@@ -1966,7 +2084,7 @@ contains
         case (121)
             open (51, file='e4d.log', status='old', action='write', position='append')
             if (cfg_filename(mnchar + 2:mnchar + 6) == ".node") then
-                inquire (file=trim(cfg_filename), exist=exst)
+                inquire (file="mesh/"//trim(cfg_filename), exist=exst)
                 if (.not. exst) then
                     write (51, *)
                     write (*, *)
@@ -1976,7 +2094,7 @@ contains
                     call crash_exit
                 end if
             elseif (cfg_filename(mnchar + 2:mnchar + 5) == ".ele") then
-                inquire (file=trim(cfg_filename), exist=exst)
+                inquire (file="mesh/"//trim(cfg_filename), exist=exst)
                 if (.not. exst) then
                     write (51, *)
                     write (*, *)
@@ -3350,7 +3468,7 @@ contains
         end do
 
         call check_inp(15, junk)
-        open (21, file=cfg_filename(1:mnchar)//'trn', status='old')
+        open (21, file='mesh/'//cfg_filename(1:mnchar)//'trn', status='old')
         
         ! Read all lines to get to the last one
         do
@@ -3390,18 +3508,18 @@ contains
                             exit
                         end if
                     end do
-                    inquire (file=cfg_filename(1:npre)//".ele", exist=file_exists)
+                    inquire (file='mesh/'//cfg_filename(1:npre)//".ele", exist=file_exists)
                     if (.not. file_exists) then
                         open (51, file='e4d.log', status='old', action='write')
                         write (51, *)
-                        write (51, *) ' Cannot find the element file : ', cfg_filename(1:npre)//'.ele'
+                        write (51, *) ' Cannot find the element file : ', 'mesh/'//cfg_filename(1:npre)//'.ele'
                         close (51)
                         write (*, *)
-                        write (*, *) ' Cannot find the ele file : ', cfg_filename(1:npre)//'.ele'
+                        write (*, *) ' Cannot find the ele file : ', 'mesh/'//cfg_filename(1:npre)//'.ele'
                         close (51)
                         call crash_exit
                     else
-                        open (10, file=cfg_filename(1:npre)//".ele", status='old', action='read')
+                        open (10, file='mesh/'//cfg_filename(1:npre)//".ele", status='old', action='read')
                         read (10, *) model_size
                         close (10)
                         allocate (sigma_re(model_size))

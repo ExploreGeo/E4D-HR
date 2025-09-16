@@ -1,4 +1,0 @@
-
-#requiresdefine   'PETSC_USE_FORTRAN_BINDINGS'
-#requirespackage 'PETSC_HAVE_CHACO'
-CPPFLAGS  = ${CHACO_INCLUDE}

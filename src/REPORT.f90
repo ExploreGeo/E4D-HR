@@ -1,11 +1,6 @@
 !! @brief Logging module for E4D-HR
 !!
 !! @describe This module provides a logging functionality for the E4D-HR code.
-!!
-!! Changelog
-!! 07/08/24 - DP
-!! Added version control information which is printed to terminal and log file.
-!! Make file was also edited to allow for this.
 
 module e4d_report
 
@@ -169,13 +164,13 @@ contains
             ! Beta analysis - integrated from check_beta
             if (iter > 0) then
                 write (67, *)
-                write (67, "(A,G12.5)") "Decrease in objective function is: ", ((PHI_T_prev - phi_tot) / PHI_T_prev)
+                write (67, "(A,G12.5)") " Decrease in objective function is: ", ((PHI_T_prev - phi_tot) / PHI_T_prev)
                 if (abs((PHI_T_prev - phi_tot) / PHI_T_prev) <= del_obj) then
                     ! If we're here then we've found the solution at this beta value
                     ! If conv_opt = 2 then we're done - this is handled in check_beta
                     write (67, "(A,G12.5,A,G12.5,A,G12.5)") "Decreasing beta by ", beta_red, " from ", beta, " to ", beta_red * beta
                 else 
-                    write (67, "(A,G12.5)") "Decrease in objective function is sufficient to continue at beta = ", beta
+                    write (67, "(A,G12.5)") " Decrease is sufficient to continue at beta = ", beta
                 end if
             end if
 

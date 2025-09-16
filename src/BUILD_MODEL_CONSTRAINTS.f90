@@ -53,7 +53,7 @@ contains
             allocate (neighbors(n_elements, 4))
             do i = 1, 80
                 if (cfg_filename(i:i) == '.') then
-                    open (21, file=cfg_filename(1:i + 1)//".neigh", status='old', action='read')
+                    open (21, file="mesh/"//cfg_filename(1:i + 1)//".neigh", status='old', action='read')
 
                     if (allocated(element_map)) then
                         !if element_map is allocated then there are inactive elements
@@ -848,7 +848,7 @@ contains
             allocate (neighbors(n_elements, 4))
             do i = 1, 80
                 if (cfg_filename(i:i) == '.') then
-                    open (21, file=cfg_filename(1:i + 1)//".neigh", status='old', action='read'); 
+                    open (21, file="mesh/"//cfg_filename(1:i + 1)//".neigh", status='old', action='read'); 
                     read (21, *)
                     do j = 1, n_elements
                         read (21, *) k, neighbors(j, 1:4)

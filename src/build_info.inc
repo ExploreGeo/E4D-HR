@@ -1,5 +1,0 @@
-character(len=*), parameter :: BUILD_COMPILER = 'intel'
-character(len=*), parameter :: BUILD_VERSION = '1.0.0'
-character(len=*), parameter :: BUILD_DATE = '2025-08-19'
-character(len=*), parameter :: BUILD_TIME = '15:27:44'
-character(len=*), parameter :: BUILD_HOST = 'chrysoprase'
