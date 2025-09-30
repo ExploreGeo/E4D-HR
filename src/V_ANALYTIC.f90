@@ -550,10 +550,10 @@ module v_analytic
         write(51,"(A36, G12.5)") " Maximum surface node elevation:   ",mx+zorig ! Increase witdth in format descriptor. - OFGN 1/10/23
         write(51,"(A36, G12.5)") " Minimum surface node elevation:   ",mn+zorig ! Increase witdth in format descriptor. - OFGN 1/10/23
         write(51,"(A36, G12.5)") " Using surface elevation of    :   ",se+zorig ! Increase witdth in format descriptor. - OFGN 1/10/23
-        if(mx .ne. se .or. mn .ne. se) then
-            write(51,*) "  !!! WARNING: It appears there may be some surface variability."
-            write(51,*) "  !!! The analytic solution requires a flat surface."
-        end if
+        !if(mx .ne. se .or. mn .ne. se) then
+        !    write(51,*) "  !!! WARNING: It appears there may be some surface variability."
+        !    write(51,*) "  !!! The analytic solution requires a flat surface."
+        !end if
         close(51)
         
         if(use_mean .or. use_median) return

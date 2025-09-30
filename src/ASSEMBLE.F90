@@ -125,13 +125,17 @@ contains
             if(p==a) then 
               if(m.ne.0) then
                 do j=1,4
-                  my_dvals(indx)=my_dvals(indx) + real(poles(source_nodes(m,j),a-e1+1)*source_currents(m,j))
+                  if(source_nodes(m,j).ne.0) then
+                    my_dvals(indx)=my_dvals(indx) + real(poles(source_nodes(m,j),a-e1+1)*source_currents(m,j))
+                  end if
                 end do
                 !my_dvals(indx)=my_dvals(indx) + real(poles(e_nods(m),a-e1+1)
               end if
               if(n.ne.0) then
                 do j=1,4
-                  my_dvals(indx)=my_dvals(indx) - real(poles(source_nodes(n,j),a-e1+1)*source_currents(n,j))
+                  if(source_nodes(n,j).ne.0) then
+                    my_dvals(indx)=my_dvals(indx) - real(poles(source_nodes(n,j),a-e1+1)*source_currents(n,j))
+                  end if
                 end do
                 !my_dvals(indx)=my_dvals(indx) - real(poles(e_nods(n),a-e1+1))
               end if
@@ -140,13 +144,17 @@ contains
             if(p==b) then
               if(m.ne.0) then
                 do j=1,4
-                  my_dvals(indx)=my_dvals(indx) - real(poles(source_nodes(m,j),b-e1+1)*source_currents(m,j))
+                  if(source_nodes(m,j).ne.0) then
+                    my_dvals(indx)=my_dvals(indx) - real(poles(source_nodes(m,j),b-e1+1)*source_currents(m,j))
+                  end if
                 end do
                 !my_dvals(indx)=my_dvals(indx) - real(poles(e_nods(m),b-e1+1))
               end if
               if(n.ne.0) then
                 do j=1,4
-                  my_dvals(indx)=my_dvals(indx) + real(poles(source_nodes(n,j),b-e1+1)*source_currents(n,j))
+                  if(source_nodes(n,j).ne.0) then
+                    my_dvals(indx)=my_dvals(indx) + real(poles(source_nodes(n,j),b-e1+1)*source_currents(n,j))
+                  end if
                 end do
                 !my_dvals(indx)=my_dvals(indx) + real(poles(e_nods(n),b-e1+1))
               end if
@@ -174,12 +182,16 @@ contains
             if(p==a) then
               if(m.ne.0) then
                 do j=1,4
-                  my_dvals(indx)=my_dvals(indx) + real(polesi(source_nodes(m,j),a-e1+1)*source_currents(m,j))
+                  if(source_nodes(m,j).ne.0) then
+                    my_dvals(indx)=my_dvals(indx) + real(polesi(source_nodes(m,j),a-e1+1)*source_currents(m,j))
+                  end if
                 end do
               end if
               if(n.ne.0) then
                 do j=1,4
-                  my_dvals(indx)=my_dvals(indx) - real(polesi(source_nodes(n,j),a-e1+1)*source_currents(n,j))
+                  if(source_nodes(n,j).ne.0) then
+                    my_dvals(indx)=my_dvals(indx) - real(polesi(source_nodes(n,j),a-e1+1)*source_currents(n,j))
+                  end if
                 end do
               end if
               !if(m.ne.0) my_dvals(indx)=my_dvals(indx) + real(polesi(e_nods(m),a-e1+1))
@@ -189,12 +201,16 @@ contains
             if(p==b) then
               if(m.ne.0) then
                 do j=1,4
-                  my_dvals(indx)=my_dvals(indx) - real(polesi(source_nodes(m,j),b-e1+1)*source_currents(m,j))
+                  if(source_nodes(m,j).ne.0) then
+                    my_dvals(indx)=my_dvals(indx) - real(polesi(source_nodes(m,j),b-e1+1)*source_currents(m,j))
+                  end if
                 end do
               end if
               if(n.ne.0) then
                 do j=1,4
-                  my_dvals(indx)=my_dvals(indx) + real(polesi(source_nodes(n,j),b-e1+1)*source_currents(n,j))
+                  if(source_nodes(n,j).ne.0) then
+                    my_dvals(indx)=my_dvals(indx) + real(polesi(source_nodes(n,j),b-e1+1)*source_currents(n,j))
+                  end if
                 end do
               end if
               !if(m.ne.0) my_dvals(indx)=my_dvals(indx) - real(polesi(e_nods(m),b-e1+1))

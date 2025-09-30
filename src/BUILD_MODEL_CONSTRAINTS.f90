@@ -129,14 +129,16 @@ contains
                                     do k = 1, 4
                                         nbr = neighbors(i, k)
 
-                                        if (zones(nbr) .ne. zones(i)) then
-                                            do ii = 2, zone_links(j, 1) + 1
-                                                if (zone_links(j, ii) == zones(nbr)) then
-                                                    ccount = ccount + 1
-                                                end if
-                                            end do
-                                        else
-                                            ccount = ccount + 1
+                                        if (nbr > 0) then
+                                            if (zones(nbr) .ne. zones(i)) then
+                                                do ii = 2, zone_links(j, 1) + 1
+                                                    if (zone_links(j, ii) == zones(nbr)) then
+                                                        ccount = ccount + 1
+                                                    end if
+                                                end do
+                                            else
+                                                ccount = ccount + 1
+                                            end if
                                         end if
 
                                     end do
@@ -201,25 +203,25 @@ contains
                                 else
                                     do k = 1, 4
                                         nbr = neighbors(i, k)
-
-                                        if (zones(nbr) .ne. zones(i)) then
-                                            do ii = 2, zone_links(j, 1) + 1
-                                                if (zone_links(j, ii) == zones(nbr)) then
+                                        if (nbr > 0) then
+                                            if (zones(nbr) .ne. zones(i)) then
+                                                do ii = 2, zone_links(j, 1) + 1
+                                                    if (zone_links(j, ii) == zones(nbr)) then
+                                                        ccount = ccount + 1
+                                                        rblock(ccount, 1) = i
+                                                        rblock(ccount, 2) = nbr
+                                                        rblock(ccount, 3) = j
+                                                    end if
+                                                end do
+                                            else
+                                                if (smetric(j, 2) < 9 .or. smetric(j, 2) > 10) then
                                                     ccount = ccount + 1
                                                     rblock(ccount, 1) = i
                                                     rblock(ccount, 2) = nbr
                                                     rblock(ccount, 3) = j
                                                 end if
-                                            end do
-                                        else
-                                            if (smetric(j, 2) < 9 .or. smetric(j, 2) > 10) then
-                                                ccount = ccount + 1
-                                                rblock(ccount, 1) = i
-                                                rblock(ccount, 2) = nbr
-                                                rblock(ccount, 3) = j
                                             end if
                                         end if
-
                                     end do
                                 end if
 

@@ -79,476 +79,480 @@ module input
     real, dimension(:), allocatable :: phase                !!constraint targets
 
 contains
+    subroutine initial_read
+        !!
+        !! This subroutine will read the input file for the total number of runs
+        !! It will set the global variable total_runs accordingly
 
-    !____________________________________________________________________________________________
-    subroutine read_input
-        
         implicit none
+        character(len=256) :: line
+        character(len=80) :: setting
+        character(len=40) :: value
 
-        character*40 :: smode
-        character*40 :: chk_sigfile                              !!temp variable to check conductivity file value in e4d.inp
+        open(10, file='e4d.inp', status='old', action='read')
 
-        integer :: nchar, junk, i, check, j
+        do
+            read(10, '(A)', IOSTAT=io_stat) line
+            if (io_stat /= 0) exit ! Exit loop on end of file or error
+
+            ! Detect run number
+            call parse_line(line, setting, value)
+            if (setting =='total number of runs') then
+                read(value, *, IOSTAT=io_stat) total_runs
+                exit
+            end if
+        end do
+
+        close(10)
+    end subroutine initial_read
+
+    subroutine load_settings(run_number)
+        !!
+        !! This subroutine will find the settings in the inp file for a given
+        !! run number. It will set the global variables accordingly.
+        !! This is a refactoring of the original read_input subroutine.
+        !! Intended for use within a particular run to grab settings from the input file.
+
+        implicit none
+        integer, intent(in) :: run_number
+        integer :: run_num_int, junk, check, i
         logical :: exst
-        logical :: wdwarn = .false.
+        character(len=256) :: line
+        character(len=80) :: setting
+        character(len=40) :: value
 
-        call check_inp(0, junk)
-        open (10, file='e4d.inp', status='old', action='read')
-        read (10, *, IOSTAT=io_stat) smode; call check_inp(101, junk)
-
-        ! check for alpha characters and make them all lower case
-        smode = lcase(smode)
-
-        if (trim(adjustl(smode)) == 'analytic' .or. trim(adjustl(smode)) == 'ertanalytic') then
-            analytic = .true.
-            mode = 2; call check_inp(1, junk)
-        else
-            select case (trim(adjustl(smode)))
-            case ('ert0')
-                mode = 0; call check_inp(1, junk)
-            case ('ert1')
-                mode = 1; call check_inp(1, junk)
-            case ('ert2')
-                mode = 2; call check_inp(1, junk)
-            case ('ert3')
-                mode = 3; call check_inp(1, junk)
-            case ('ert4')
-                mode = 4; call check_inp(1, junk)
-            case ('ert5')
-                mode = 5; call check_inp(1, junk)
-            case ('dcr0')
-                mode = 0; call check_inp(1, junk)
-            case ('dcr1')
-                mode = 1; call check_inp(1, junk)
-            case ('dcr2')
-                mode = 2; call check_inp(1, junk)
-            case ('dcr3')
-                mode = 3; call check_inp(1, junk)
-            case ('dcr4')
-                mode = 4; call check_inp(1, junk)
-            case ('dcr5')
-                mode = 5; call check_inp(1, junk)
-
-            case ('sip0')
-                mode = 0; call check_inp(1, junk)
-                i_flag = .true.
-            case ('sip1')
-                mode = 21; call check_inp(1, junk)
-            case ('sip2')
-                mode = 22; call check_inp(1, junk)
-            case ('sip3')
-                mode = 23; call check_inp(1, junk)
-            case ('sip4')
-                mode = 24; call check_inp(1, junk)
-            case ('ip0')
-                mode = 0; call check_inp(1, junk)
-                i_flag = .true.
-            case ('ip1')
-                mode = 21; call check_inp(1, junk)
-            case ('ip2')
-                mode = 22; call check_inp(1, junk)
-            case ('ip3')
-                mode = 23; call check_inp(1, junk)
-            case ('ip4')
-                mode = 24; call check_inp(1, junk)
-
-            case ('erttank0')
-                mode = 0; call check_inp(1, junk)
-                tank_flag = .true.
-            case ('erttank1')
-                mode = 31; call check_inp(1, junk)
-            case ('erttank2')
-                mode = 32; call check_inp(1, junk)
-            case ('erttank3')
-                mode = 33; call check_inp(1, junk)
-            case ('erttank4')
-                mode = 34; call check_inp(1, junk)
-            case ('erttank5')
-                mode = 35; call check_inp(1, junk)
-            case ('dcrtank0')
-                mode = 0; call check_inp(1, junk)
-                tank_flag = .true.
-            case ('dcrtank1')
-                mode = 31; call check_inp(1, junk)
-            case ('dcrtank2')
-                mode = 32; call check_inp(1, junk)
-            case ('dcrtank3')
-                mode = 33; call check_inp(1, junk)
-            case ('dcrtank4')
-                mode = 34; call check_inp(1, junk)
-            case ('dcrtank5')
-                mode = 35; call check_inp(1, junk)
-
-            case ('iptank0')
-                mode = 0; call check_inp(1, junk)
-                tank_flag = .true.
-                i_flag = .true.
-            case ('iptank1')
-                mode = 41; call check_inp(1, junk)
-            case ('iptank2')
-                mode = 42; call check_inp(1, junk)
-            case ('iptank3')
-                mode = 43; call check_inp(1, junk)
-            case ('iptank4')
-                mode = 44; call check_inp(1, junk)
-            case DEFAULT
-                read (smode, *, IOSTAT=io_stat) mode; call check_inp(1, junk)
-            end select
-        end if
-
-    !! if running in mode zero attempt the read the input files, report, and exit
-        if (mode == 0) then
-            !call test_read
-            return
-        end if
-
-        read (10, *, IOSTAT=io_stat) cfg_filename
+        ! Initialize the default settings to ensure clean state
+        analytic = .false.
+        i_flag = .false.
+        tank_flag = .false.
+        rt_flag = .false.
+        tl_ly = .false.
+        res_flag = .false.
+        opt_flag = .false.
+        psf_flag = .false.
+        use_mean = .false.
+        use_median = .false.
+        multi_forward = .false.
+        r_last = .false.
+        
+        ! Initialize character variables
+        cfg_filename = ''
+        efile = ''
+        sig_filename = ''
+        out_file = ''
+        invfile = ''
+        iinvfile = ''
+        refmod_file = ''
+        tl_file = ''
+        
+        ! Initialize integer variables that might be used
         mesh_prefix_length = 0
-        do i = 1, 255
-            if (cfg_filename(i:i) == '.') then
-                mesh_prefix_length = i - 1
-                exit
-            end if
-        end do
-        mesh_prefix = cfg_filename(1:mesh_prefix_length)
+        mode = 0
 
-        call check_inp(2, junk)
+        open(10, file='e4d.inp', status='old', action='read')
 
-        if (mode > 1 .and. mode .ne. 21 .and. mode .ne. 31 .and. mode .ne. 41) then
-            read (10, *, IOSTAT=io_stat) efile; call check_inp(3, junk)
-            read (10, *, IOSTAT=io_stat) sig_filename; call check_inp(4, junk)
+        do
+            read(10, '(A)', IOSTAT=io_stat) line
+            if (io_stat /= 0) exit ! Exit loop on end of file or error
 
-            ! check for alpha characters and make them all lower case
-            chk_sigfile = lcase(trim(sig_filename))
-            if (chk_sigfile == "average" .or. chk_sigfile == "mean") then
-                use_mean = .true.
-            else if (chk_sigfile == "median") then
-                use_median = .true.
-            end if
-            read (10, *) out_file; call check_inp(5, junk)
-        end if
-        if (analytic) return
+            ! Initialize setting and value
+            setting = ''
+            value = ''
 
-        if (mode == 5 .or. mode == 35) then
-            rt_flag = .true.
-            if (mode == 5) mode = 4
-            if (mode == 35) mode = 34
-        end if
+            ! Detect run number
+            call parse_line(line, setting, value)
+            ! convert value to integer and compare to run_number
+            read(value, *, IOSTAT=io_stat) run_num_int
+            if (setting =='run number' .and. run_num_int == run_number) then
+                ! We have found the correct run number, now read the settings until the next run number or end of file
+                do
+                    read(10, '(A)', IOSTAT=io_stat) line
+                    if (io_stat /= 0) exit ! Exit loop on end of file or error
+                    call parse_line(line, setting, value)
+                    if (setting =='run number' .or. setting =='Inversion settings') then
+                        ! We've reached the next run number or inversion settings, so exit
+                        backspace(10)
+                        exit
+                    end if
 
-        if (mode == 3 .or. mode == 4 &
-            .or. mode == 33 &
-            .or. mode == 34 &
-            .or. mode .ge. 100) then
+                    ! Now set the global variables based on setting and value
+                    if (setting =='run mode') then
+                        value = lcase(value)
 
-            read (10, *, IOSTAT=io_stat) invfile; call check_inp(6, junk)
-            read (10, *, IOSTAT=io_stat) refmod_file; call check_inp(7, junk)
+                        select case (value)
+                        case ('analytic', 'ertanalytic')
+                            analytic = .true.
+                            mode = 2; call check_inp(1, junk)
+                        case ('ert0')
+                            mode = 0; call check_inp(1, junk)
+                        case ('ert1')
+                            mode = 1; call check_inp(1, junk)
+                        case ('ert2')
+                            mode = 2; call check_inp(1, junk)
+                        case ('ert3')
+                            mode = 3; call check_inp(1, junk)
+                        case ('ert4')
+                            mode = 4; call check_inp(1, junk)
+                        case ('ert5')
+                            mode = 5; call check_inp(1, junk)
+                        case ('dcr0')
+                            mode = 0; call check_inp(1, junk)
+                        case ('dcr1')
+                            mode = 1; call check_inp(1, junk)
+                        case ('dcr2')
+                            mode = 2; call check_inp(1, junk)
+                        case ('dcr3')
+                            mode = 3; call check_inp(1, junk)
+                        case ('dcr4')
+                            mode = 4; call check_inp(1, junk)
+                        case ('dcr5')
+                            mode = 5; call check_inp(1, junk)
+                        
+                        case ('sip0')
+                            mode = 0; call check_inp(1, junk)
+                            i_flag = .true.
+                        case ('sip1')
+                            mode = 21; call check_inp(1, junk)
+                        case ('sip2')
+                            mode = 22; call check_inp(1, junk)
+                        case ('sip3')
+                            mode = 23; call check_inp(1, junk)
+                        case ('sip4')
+                            mode = 24; call check_inp(1, junk)
+                        case ('ip0')
+                            mode = 0; call check_inp(1, junk)
+                            i_flag = .true.
+                        case ('ip1')
+                            mode = 21; call check_inp(1, junk)
+                        case ('ip2')
+                            mode = 22; call check_inp(1, junk)
+                        case ('ip3')
+                            mode = 23; call check_inp(1, junk)
+                        case ('ip4')
+                            mode = 24; call check_inp(1, junk)
+                        
+                        case ('erttank0')
+                            mode = 0; call check_inp(1, junk)
+                            tank_flag = .true.
+                        case ('erttank1')
+                            mode = 31; call check_inp(1, junk)
+                        case ('erttank2')
+                            mode = 32; call check_inp(1, junk)
+                        case ('erttank3')
+                            mode = 33; call check_inp(1, junk)
+                        case ('erttank4')
+                            mode = 34; call check_inp(1, junk)
+                        case ('erttank5')
+                            mode = 35; call check_inp(1, junk)
+                        case ('dcrtank0')
+                            mode = 0; call check_inp(1, junk)
+                            tank_flag = .true.
+                        case ('dcrtank1')
+                            mode = 31; call check_inp(1, junk)
+                        case ('dcrtank2')
+                            mode = 32; call check_inp(1, junk)
+                        case ('dcrtank3')
+                            mode = 33; call check_inp(1, junk)
+                        case ('dcrtank4')
+                            mode = 34; call check_inp(1, junk)
+                        case ('dcrtank5')
+                            mode = 35; call check_inp(1, junk)
+                        
+                        case ('iptank0')
+                            mode = 0; call check_inp(1, junk)
+                            tank_flag = .true.
+                            i_flag = .true.
+                        case ('iptank1')
+                            mode = 41; call check_inp(1, junk)
+                        case ('iptank2')
+                            mode = 42; call check_inp(1, junk)
+                        case ('iptank3')
+                            mode = 43; call check_inp(1, junk)
+                        case ('iptank4')
+                            mode = 44; call check_inp(1, junk)
+                        case DEFAULT
+                            read (value, *, IOSTAT=io_stat) mode; call check_inp(1, junk)
+                        end select
 
-        elseif (mode == 23 .or. mode == 43 .or. mode == 24 .or. mode == 44) then
+                        if (mode == 0) then
+                            ! No further settings needed for mode 0
+                            exit
+                        end if
+                        
+                        ! Handle mode conversions for IP modes immediately after mode is set
+                        if (mode == 21) then
+                            mode = 1
+                            i_flag = .true.
+                        elseif (mode == 22) then
+                            mode = 2
+                            i_flag = .true.
+                        elseif (mode == 23) then
+                            mode = 3
+                            i_flag = .true.
+                        elseif (mode == 24) then
+                            i_flag = .true.
+                            tl_ly = .true.
+                        end if
 
-            read (10, *, IOSTAT=io_stat) invfile, iinvfile; call check_inp(6, junk)
-            read (10, *, IOSTAT=io_stat) refmod_file; call check_inp(7, junk)
+                        if (mode == 5 .or. mode == 35) then
+                            rt_flag = .true.
+                            if (mode == 5) mode = 4
+                            if (mode == 35) mode = 34
+                        end if
 
-        end if
+                        if (mode == 4) tl_ly = .true.
 
-        if (mode == 4) tl_ly = .true.
+                        if ((mode .ge. 31 .and. mode .le. 34) .or. (mode .ge. 41 .and. mode .le. 44)) then
+                            tank_flag = .true.
+                            select case (mode)
+                            case (31)
+                                mode = 1
+                            case (32)
+                                mode = 2
+                            case (33)
+                                mode = 3
+                            case (34)
+                                tl_ly = .true.
+                            case (41)
+                                mode = 1
+                                i_flag = .true.
+                            case (42)
+                                mode = 2
+                                i_flag = .true.
+                            case (43)
+                                mode = 3
+                                i_flag = .true.
+                            case (44)
+                                i_flag = .true.
+                                tl_ly = .true.
+                            end select
+                        end if
 
-        if (mode == 21) then
-            mode = 1
-            i_flag = .true.
-        elseif (mode == 22) then
-            mode = 2
-            i_flag = .true.
-        elseif (mode == 23) then
-            mode = 3
-            i_flag = .true.
-        elseif (mode == 24) then
-            i_flag = .true.
-            tl_ly = .true.
-        end if
+                        if (mode .ge. 100) then
+                            res_flag = .true.
+                            if (mode == 101) opt_flag = .true.
+                            if (mode == 102) psf_flag = .true.
+                        end if
+                        
+                        cycle
+                    end if
 
-        if ((mode .ge. 31 .and. mode .le. 34) .or. (mode .ge. 41 .and. mode .le. 44)) then
-            tank_flag = .true.
-            select case (mode)
-            case (31)
-                mode = 1
-            case (32)
-                mode = 2
-            case (33)
-                mode = 3
-            case (34)
-                tl_ly = .true.
-            case (41)
-                mode = 1
-                i_flag = .true.
-            case (42)
-                mode = 2
-                i_flag = .true.
-            case (43)
-                mode = 3
-                i_flag = .true.
-            case (44)
-                i_flag = .true.
-                tl_ly = .true.
-            end select
+                    ! The code below will only run if the mode has been set.
 
-        end if
+                    ! If not in mesh generation mode, cfg_filename is actually the mesh file e.g. prefix.1.node or prefix.1.ele
+                    if (setting =='config file name' .or. setting =='mesh file name') then
+                        cfg_filename = value
+                        mesh_prefix_length = 0
+                        do i = 1, 255
+                            if (cfg_filename(i:i) == '.') then
+                                mesh_prefix_length = i - 1
+                                exit
+                            end if
+                        end do
+                        mesh_prefix = cfg_filename(1:mesh_prefix_length)
+                        call check_inp(2, junk)
+                        cycle
+                    end if
 
-        if (mode .ge. 100) then
-            res_flag = .true.
-            if (mode == 101) opt_flag = .true.
-            if (mode == 102) psf_flag = .true.
-        end if
+                    ! Load subsequent settings as needed based on mode
+                    if (mode > 1 .and. mode .ne. 21 .and. mode .ne. 31 .and. mode .ne. 41) then
+                        if (setting =='survey file name') then
+                            efile = value; call check_inp(3, junk)
+                            cycle
+                        else if (setting =='initial model') then
+                            sig_filename = lcase(value); call check_inp(4, junk)
+                            if (sig_filename == "average" .or. sig_filename == "mean") then
+                                use_mean = .true.
+                            else if (sig_filename == "median") then
+                                use_median = .true.
+                            end if
+                            cycle
+                        end if
+                        if (setting =='output file name') then
+                            out_file = value; call check_inp(5, junk)
+                            cycle
+                        end if
+                    end if
 
-    !!read the time lapse data list file
-        if (tl_ly) then
+                    if (analytic) exit ! No further settings needed for analytic mode
 
-            mode = 3
-            check = 0
+                    if (mode == 3 .or. mode == 4 .or. mode == 33 .or. mode == 34 .or. mode .ge. 100 .or. mode == 23 .or. mode == 43 .or. mode == 24 .or. mode == 44) then
+                        if (setting =='reference model file name') refmod_file = value; cycle
+                    end if
 
-            read (10, *, IOSTAT=io_stat) tl_file, check; call check_inp(8, check)
-            if (check == 2) r_last = .true.
+                    if (tl_ly) then
+                        mode = 3
+                        if (setting =='time-lapse file') then
+                            tl_file = value
+                            check = 0
+                            call check_inp(8, check)
+                            if (check == 2) r_last = .true.
+                            cycle
+                        end if
+                    end if
 
-            if (rt_flag) then
-                ntl = 1
-                allocate (tl_dfils(ntl), tlt(ntl))
-            else
-
-                open (21, file=trim(tl_file), status='old', action='read', IOSTAT=io_stat)
-                read (21, *, IOSTAT=io_stat) ntl; call check_inp(9, junk)
-                allocate (tl_dfils(ntl), tlt(ntl))
-
-                do i = 1, ntl
-                    read (21, *, IOSTAT=io_stat) tl_dfils(i), tlt(i); call check_inp(10, i)
-                    inquire (file=trim(tl_dfils(i)), exist=exst)
-                    if (.not. exst) call check_inp(11, i)
                 end do
-                close (21)
-            end if
 
-        end if
-        close (10)
+                ! Handle time-lapse file processing after all settings are parsed
+                if (tl_ly .and. trim(tl_file) /= '') then
+                    if (rt_flag) then
+                        ntl = 1
+                        allocate (tl_dfils(ntl), tlt(ntl))
+                    else
+                        open (21, file=trim(tl_file), status='old', action='read', IOSTAT=io_stat)
+                        read (21, *, IOSTAT=io_stat) ntl; call check_inp(9, junk)
+                        allocate (tl_dfils(ntl), tlt(ntl))
 
-    !!Determine if the mesh file is a .cfg file or if meshfiles are provided
-        mnchar = 0
-        do i = 1, 40
-            if (cfg_filename(i:i) == '.') then
-                mnchar = i
+                        do i = 1, ntl
+                            read (21, *, IOSTAT=io_stat) tl_dfils(i), tlt(i); call check_inp(10, i)
+                            inquire (file=trim(tl_dfils(i)), exist=exst)
+                            if (.not. exst) call check_inp(11, i)
+                        end do
+                        close (21)
+                    end if
+                end if
+
+                ! Post-processing steps that need to happen after all settings are loaded
+                if (trim(cfg_filename) /= '') then
+                    mnchar = 0
+                    do i = 1, 40
+                        if (cfg_filename(i:i) == '.') then
+                            mnchar = i
+                            exit
+                        end if
+                    end do
+                    if (mnchar == 0) call check_inp(21, 0)
+
+                    !!Check for compatibility between cfg_filename and mode
+                    !!Check for config file
+                    if (mode == 1) then
+                        if (cfg_filename(mnchar + 1:mnchar + 3) == "cfg") then
+                            inquire (file=trim(cfg_filename), exist=exst)
+                            if (.not. exst) call check_inp(21, 1)
+                        else if (cfg_filename(mnchar + 1:mnchar + 3) .ne. "cfg") then
+                            call check_inp(21, 0)
+                        end if
+                    end if
+
+                    if (mode == 1) then
+                        ! Exit the outer loop after processing the desired run number
+                        exit
+                    end if
+
+                    !!check mesh files
+                    if (mode > 1) then
+                        call check_inp(121, mnchar)
+                    end if
+
+                    !!Allocate/read the electrode positions and survey configuration
+                    if (mode > 1) then
+                        call read_survey
+                        call translate_electrodes
+                    end if
+
+                    !!if we're running in a forward mode, check to see if a list
+                    !!file was provided. If so, check the list file to make sure
+                    !!all of the files exist and set the multi_forward flag to
+                    !!true.
+                    if ((.not. use_mean) .and. (.not. use_median)) then
+                        if (mode == 2 .or. mode == 22 .or. mode == 32 .or. mode == 42 .or. mode == 52) then
+                            multi_forward = .false.
+                            call check_for_list()
+                        end if
+                    end if
+
+                    !!read the conductivity file
+                    if (((.not. use_mean) .and. (.not. use_median)) .and. .not. multi_forward) then
+                        call read_conductivity()
+                    end if
+                end if
+
+                ! Exit the outer loop after processing the desired run number
                 exit
             end if
         end do
-        if (mnchar == 0) call check_inp(21, 0)
 
-    !!Check for compatibility between cfg_filename and mode
-    !!Check for config file
-        if (mode == 1) then
-            if (cfg_filename(mnchar + 1:mnchar + 3) == "cfg") then
-                inquire (file=trim(cfg_filename), exist=exst)
-                if (.not. exst) call check_inp(21, 1)
-            else if (cfg_filename(mnchar + 1:mnchar + 3) .ne. "cfg") then
-                call check_inp(21, 0)
-            end if
-        end if
+        close(10)
 
-        if (mode == 1) return
+    end subroutine load_settings
 
-    !!check mesh files
-        if (mode > 1) then
-            call check_inp(121, mnchar)
-        end if
-
-    !!Allocate/read the electrode positions and survey configuration
-        if (mode > 1) then
-            call read_survey
-            call translate_electrodes
-        end if
-
-    !!if we're running in a forward mode, check to see if a list
-    !!file was provided. If so, check the list file to make sure
-    !!all of the files exist and set the multi_forward flag to
-    !!true.
-        if ((.not. use_mean) .and. (.not. use_median)) then
-            if (mode == 2 .or. mode == 22 .or. mode == 32 .or. mode == 42 .or. mode == 52) then
-                multi_forward = .false.
-                call check_for_list()
-            end if
-        end if
-
-        !!read the conductivity file
-        if (((.not. use_mean) .and. (.not. use_median)) .and. .not. multi_forward) then
-            call read_conductivity()
-        end if
-
-    end subroutine read_input
-    !___________________________________________________________________________________
-
-    subroutine read_inputII
-        
+    subroutine parse_line(line, setting, value)
+        !!
+        !! This subroutine will parse a line from the inp file into a setting and value.
+        !! It assumes the line is of the form "setting = value" or "setting value".
+        !! It trims whitespace and ignores comments (lines starting with # or !).
+        !!
         implicit none
+        character(len=*), intent(in) :: line
+        character(len=80), intent(out) :: setting
+        character(len=40), intent(out) :: value
 
-        character*40 :: smode
-        character*40 :: chk_sigfile                              !!temp variable to check conductivity file value in e4d.inp
+        integer :: eq_pos, i
+        character(len=256) :: temp_line
+        character(len=40) :: temp_setting
 
-        integer :: nchar, junk, i, check, j
-        logical :: exst
-        logical :: wdwarn = .false.
+        ! Initialize outputs
+        setting = ''
+        value = ''
 
-        call check_inp(0, junk)
-        open (10, file='e4d_inp.inp', status='old', action='read')
-        read (10, *, IOSTAT=io_stat) smode; call check_inp(101, junk)
-
-        ! check for alpha characters and make them all lower case
-        smode = lcase(smode)
-
-        if (trim(adjustl(smode)) == 'analytic' .or. trim(adjustl(smode)) == 'ertanalytic') then
-            analytic = .true.
-            mode = 2; call check_inp(1, junk)
-        else
-            select case (trim(adjustl(smode)))
-            case ('ert0')
-                mode = 0; call check_inp(1, junk)
-            case ('ert1')
-                mode = 1; call check_inp(1, junk)
-            case ('ert2')
-                mode = 2; call check_inp(1, junk)
-            case ('ert3')
-                mode = 3; call check_inp(1, junk)
-            case ('ert4')
-                mode = 4; call check_inp(1, junk)
-            case ('ert5')
-                mode = 5; call check_inp(1, junk)
-            case ('dcr0')
-                mode = 0; call check_inp(1, junk)
-            case ('dcr1')
-                mode = 1; call check_inp(1, junk)
-            case ('dcr2')
-                mode = 2; call check_inp(1, junk)
-            case ('dcr3')
-                mode = 3; call check_inp(1, junk)
-            case ('dcr4')
-                mode = 4; call check_inp(1, junk)
-            case ('dcr5')
-                mode = 5; call check_inp(1, junk)
-
-            case ('sip0')
-                mode = 0; call check_inp(1, junk)
-                i_flag = .true.
-            case ('sip1')
-                mode = 21; call check_inp(1, junk)
-            case ('sip2')
-                mode = 22; call check_inp(1, junk)
-            case ('sip3')
-                mode = 23; call check_inp(1, junk)
-            case ('sip4')
-                mode = 24; call check_inp(1, junk)
-            case ('ip0')
-                mode = 0; call check_inp(1, junk)
-                i_flag = .true.
-            case ('ip1')
-                mode = 21; call check_inp(1, junk)
-            case ('ip2')
-                mode = 22; call check_inp(1, junk)
-            case ('ip3')
-                mode = 23; call check_inp(1, junk)
-            case ('ip4')
-                mode = 24; call check_inp(1, junk)
-
-            case ('erttank0')
-                mode = 0; call check_inp(1, junk)
-                tank_flag = .true.
-            case ('erttank1')
-                mode = 31; call check_inp(1, junk)
-            case ('erttank2')
-                mode = 32; call check_inp(1, junk)
-            case ('erttank3')
-                mode = 33; call check_inp(1, junk)
-            case ('erttank4')
-                mode = 34; call check_inp(1, junk)
-            case ('erttank5')
-                mode = 35; call check_inp(1, junk)
-            case ('dcrtank0')
-                mode = 0; call check_inp(1, junk)
-                tank_flag = .true.
-            case ('dcrtank1')
-                mode = 31; call check_inp(1, junk)
-            case ('dcrtank2')
-                mode = 32; call check_inp(1, junk)
-            case ('dcrtank3')
-                mode = 33; call check_inp(1, junk)
-            case ('dcrtank4')
-                mode = 34; call check_inp(1, junk)
-            case ('dcrtank5')
-                mode = 35; call check_inp(1, junk)
-
-            case ('iptank0')
-                mode = 0; call check_inp(1, junk)
-                tank_flag = .true.
-                i_flag = .true.
-            case ('iptank1')
-                mode = 41; call check_inp(1, junk)
-            case ('iptank2')
-                mode = 42; call check_inp(1, junk)
-            case ('iptank3')
-                mode = 43; call check_inp(1, junk)
-            case ('iptank4')
-                mode = 44; call check_inp(1, junk)
-            case DEFAULT
-                read (smode, *, IOSTAT=io_stat) mode; call check_inp(1, junk)
-            end select
-        end if
-
-    !! if running in mode zero attempt the read the input files, report, and exit
-        if (mode == 0) then
-            !call test_read
+        ! Trim leading and trailing whitespace
+        temp_line = adjustl(trim(line))
+        
+        ! Ignore comments and empty lines
+        if (len_trim(temp_line) == 0 .or. temp_line(1:1) == '#' .or. temp_line(1:1) == '!' .or. temp_line(1:1) == '$' .or. temp_line(1:1) == '=') then
+            setting = ''
+            value = ''
             return
         end if
 
-        
+        ! Find position of ':' if it exists
+        eq_pos = index(temp_line, ':')
 
-    end subroutine read_inputII
-
-    !__________________________________________________________________________________
-    subroutine get_inv_optsII
-        !_________________________________________________________________
-    !! Author: Tim Johnson
-        !
-    !! email: tj@pnnl.gov
-        !
-    !! Purpose: Reads the inversion options and checks their validity as possible
-    !!
-    !!
-    !! USE variables accessed or modified:
-    !! vars:
-    !! nrz :                  number of regularization blocks
-    !!
-    !!
-    !! input:
-    !! invfile :             inversion options file name
-        !__________________________________________________________________
-
-        implicit none
-        integer :: i, j, k                                      !!counters
-        integer :: max_nlink                                  !!maximum number of zone
-                                                          !!links in any regularization block
-        integer :: izn                                        !!zone number,
-        integer :: nstmp, junk                                 !!temporary placeholders
-        integer :: nzn                                        !!number of zones defined in mesh
-
-        logical :: exst                                       !!for file exist check
-        logical :: EXTRNL = .false.                           !!flag for external constraint file
-
-        character*80 :: fnam, str1, str2                        !!input strings
-        real :: rdum, rsig, isig                                !!placeholder
-
-        integer, dimension(:), allocatable :: itmp, zflag
-
-    !!Read the inversion options file and check for errors
-        call check_inv_opts(0, junk)
-        if (invi) then
-            open (10, file=iinvfile, status='old', action='read')
+        if (eq_pos > 0) then
+            ! Split at ':'
+            temp_setting = adjustl(trim(temp_line(1:eq_pos-1)))
+            setting = lcase(temp_setting)
+            value = adjustl(trim(temp_line(eq_pos+1:)))
         else
-            open (10, file=invfile, status='old', action='read')
+            ! Split at first whitespace
+            setting = temp_line  ! Default: entire line is setting
+            value = ''           ! Default: no value
+            do i = 1, len_trim(temp_line)
+                if (temp_line(i:i) == ' ' .or. temp_line(i:i) == char(9)) then
+                    temp_setting = adjustl(trim(temp_line(1:i-1)))
+                    setting = lcase(temp_setting)
+                    value = adjustl(trim(temp_line(i+1:)))
+                    exit
+                end if
+            end do
         end if
 
+    end subroutine parse_line
+
+    subroutine get_inv_opts(run_number)
+        !!
+        !! This subroutine will find the inversion options in the inp file for a given
+        !! run number. It will set the global variables accordingly.
+        !! This is a refactoring of the original get_inv_optsII subroutine.
+        !! Intended for use within a particular run to grab inversion settings from the inp file.
+
+        implicit none
+        integer, intent(in) :: run_number
+        integer :: junk, check, i, j, k
+        logical :: exst
+        character(len=256) :: line
+        character(len=80) :: setting
+        character(len=40) :: value
+        integer :: value_int
+        real :: value_real, rdum, rsig, isig
+        integer :: izn, nrz, max_nlink, nzn, nstmp
+        logical :: EXTRNL = .false.
+        integer :: izn_read
+        integer, dimension(:), allocatable :: itmp, zflag
+        character*80 :: fnam, str1, str2
+        character(len=40) :: inversion_type
+
+        ! Clean up any previously allocated arrays
         if (allocated(smetric)) deallocate (smetric)
         if (allocated(Fw_type)) deallocate (Fw_type)
         if (allocated(Fw_parm)) deallocate (Fw_parm)
@@ -557,537 +561,452 @@ contains
         if (allocated(itmp)) deallocate (itmp)
         if (allocated(zone_links)) deallocate (zone_links)
         if (allocated(zflag)) deallocate (zflag)
-        if (allocated(lsp)) deallocate (Wd_cull)
+        if (allocated(lsp)) deallocate (lsp)
         if (allocated(Wd_cull)) deallocate (Wd_cull)
 
-        nrz = 0
-        read (10, *, IOSTAT=io_stat) nrz; call check_inv_opts(1, junk)
+        ! Determine which inversion type we're looking for
+        if (invi == .false.) then
+            inversion_type = 'dc'
+        else
+            inversion_type = 'ip'
+        end if
 
-        allocate (smetric(nrz, 3), Fw_type(nrz), Fw_parm(nrz, 2), C_targ(nrz), zwts(nrz, 4))
-        allocate (itmp(nrz))
+        open(10, file='e4d.inp', status='old', action='read')
 
-        max_nlink = 0
-        do i = 1, nrz
-       !!Do and initial check on each constraint block specified
-       !!in the inverse options file
-
-            !check for an external constraint file or zone number to constrain for this block
-            EXTRNL = .false.
-            read (10, *, IOSTAT=io_stat) str1; call check_inv_opts(2, i)
-            if (trim(str1) .ne. 'EXTERNAL' .and. trim(str1) .ne. 'External' .and. trim(str1) .ne. 'external') then
-                read (str1, *, IOSTAT=io_stat) izn
-                call check_inv_opts(2, i)
-            else
-                EXTRNL = .true.
+        ! First, find the correct run number
+        do
+            read(10, '(A)', IOSTAT=io_stat) line
+            if (io_stat /= 0) then
+                exit ! Exit loop on end of file or error
             end if
 
-            read (10, *, IOSTAT=io_stat) izn; call check_inv_opts(3, i)
-            read (10, *, IOSTAT=io_stat) izn; call check_inv_opts(4, i)
+            call parse_line(line, setting, value)
+            
+            if (setting =='run number') then
+                read(value, *, IOSTAT=io_stat) value_int
+                if (value_int == run_number) then
+                    ! Found the correct run number, now look for inversion settings within this run
+                    do
+                        read(10, '(A)', IOSTAT=io_stat) line
+                        if (io_stat /= 0) then
+                            exit ! Exit loop on end of file or error
+                        end if
+                        
+                        call parse_line(line, setting, value)
+                        
+                        ! Check if we've reached the next run number
+                        if (setting =='run number') then
+                            backspace(10)
+                            exit
+                        end if
+                        
+                        value = lcase(value)
+                        
+                        if (setting =='inversion settings' .and. value == inversion_type) then
+                            ! Found the correct inversion settings block within the correct run
+                
+                            ! Read total number of zones first
+                            nrz = 0
+                            do
+                                read(10, '(A)', IOSTAT=io_stat) line
+                                if (io_stat /= 0) then
+                                    exit
+                                end if
+                                call parse_line(line, setting, value)
+                                if (setting =='run number' .or. setting =='inversion settings') then
+                                    backspace(10)
+                                    exit
+                                end if
+                                if (setting =='total number of zones') then
+                                    read(value, *, IOSTAT=io_stat) nrz
+                                    call check_inv_opts(1, junk)
+                                    exit
+                                end if
+                            end do
 
-            if (EXTRNL) then
-                read (10, *, IOSTAT=io_stat) str1; call check_inv_opts(34, i)
-            else
-                read (10, *, IOSTAT=io_stat) itmp(i); call check_inv_opts(5, i)
-                if (itmp(i) > max_nlink) then
-                    max_nlink = itmp(i); 
+                            if (nrz == 0) then
+                                call check_inv_opts(1, junk)
+                                exit
+                            end if
+
+                            ! Allocate arrays
+                            allocate (smetric(nrz, 3), Fw_type(nrz), Fw_parm(nrz, 2), C_targ(nrz), zwts(nrz, 4))
+                            allocate (itmp(nrz))
+                            
+                            ! Initialize arrays
+                            smetric = 0
+                            Fw_type = 0
+                            Fw_parm = 0.0
+                            C_targ = 0.0
+                            zwts = 0.0
+                            itmp = 0
+                            max_nlink = 0
+
+                            ! First pass: read zones to determine max_nlink
+                            do i = 1, nrz
+                                EXTRNL = .false.
+                                
+                                ! Look for zone number
+                                do
+                                    read(10, '(A)', IOSTAT=io_stat) line
+                                    if (io_stat /= 0) then
+                                        exit ! Exit loop on end of file or error
+                                    end if
+                                    call parse_line(line, setting, value)
+                                    if (setting =='run number' .or. setting =='inversion settings') then
+                                        backspace(10)
+                                        exit
+                                    end if
+                                    if (setting =='zone number') then
+                                        if (trim(value) /= 'EXTERNAL' .and. trim(value) /= 'External' .and. trim(value) /= 'external') then
+                                            read(value, *, IOSTAT=io_stat) izn
+                                            call check_inv_opts(2, i)
+                                        else
+                                            EXTRNL = .true.
+                                            izn = i  ! Use index for external zones
+                                        end if
+                                        exit
+                                    end if
+                                end do
+
+                                ! Skip through this zone's settings to find Links
+                                do
+                                    read(10, '(A)', IOSTAT=io_stat) line
+                                    if (io_stat /= 0) then
+                                        exit
+                                    end if
+                                    call parse_line(line, setting, value)
+                                    if (setting =='zone number' .or. setting =='run number' .or. setting =='inversion settings') then
+                                        backspace(10)
+                                        exit
+                                    end if
+                                    if (setting =='links') then
+                                        if (.not. EXTRNL) then
+                                            read(value, *, IOSTAT=io_stat) itmp(izn)
+                                            call check_inv_opts(5, i)
+                                            if (itmp(izn) > max_nlink) then
+                                                max_nlink = itmp(izn)
+                                            end if
+                                        else
+                                        end if
+                                        exit
+                                    end if
+                                end do
+                            end do
+
+                            ! Reset external file list
+                            open(13, file='external_files.tmp', status='replace', action='write')
+                            close(13)
+
+                            ! Allocate zone_links array
+                            allocate(zone_links(nrz, max_nlink + 1))
+                            zone_links = 0
+                            nzn = int(maxval(zones))
+
+                            ! Rewind to start of inversion settings block
+                            rewind(10)
+
+                            ! First, find the correct run number again
+                            do
+                                read(10, '(A)', IOSTAT=io_stat) line
+                                if (io_stat /= 0) then
+                                    exit
+                                end if
+                                call parse_line(line, setting, value)
+                                if (setting =='run number') then
+                                    read(value, *, IOSTAT=io_stat) value_int
+                                    if (value_int == run_number) then
+                                        exit
+                                    end if
+                                end if
+                            end do
+
+                            ! Skip to the inversion settings block for the correct inversion type within this run
+                            do
+                                read(10, '(A)', IOSTAT=io_stat) line
+                                if (io_stat /= 0) then
+                                    exit
+                                end if
+                                call parse_line(line, setting, value)
+                                if (setting =='run number') then
+                                    backspace(10)
+                                    exit
+                                end if
+                                if (setting =='inversion settings' .and. lcase(value) == trim(inversion_type)) then
+                                    exit
+                                end if
+                            end do
+
+                            ! Skip to zones
+                            do
+                                read(10, '(A)', IOSTAT=io_stat) line
+                                if (io_stat /= 0) exit
+                                call parse_line(line, setting, value)
+                                if (setting =='zone number') then
+                                    backspace(10)
+                                    exit
+                                end if
+                            end do
+
+                            ! Second pass: read all zone settings
+                            do i = 1, nrz
+                                EXTRNL = .false.
+                                call check_inv_opts(9, i)
+
+                                ! Read zone settings
+                                do
+                                    read(10, '(A)', IOSTAT=io_stat) line
+                                    if (io_stat /= 0) exit
+                                    call parse_line(line, setting, value)
+                                    
+                                    if (setting =='zone number') then
+                                        if (lcase(value) /= 'external') then
+                                            read(value, *, IOSTAT=io_stat) izn
+                                            smetric(i, 1) = izn
+                                            call check_inv_opts(10, i)
+                                        else
+                                            EXTRNL = .true.
+                                            smetric(i, 1) = nzn + 1
+                                            call check_inv_opts(10, -1)
+                                        end if
+                                    else if (setting =='structural metric') then
+                                        read(value, *, IOSTAT=io_stat) smetric(i, 2)
+                                        call check_inv_opts(11, i)
+                                    else if (setting =='relative weighting of structural metric (x,y,z)') then
+                                        read(value, *, IOSTAT=io_stat) (zwts(i, j), j=1,3)
+                                        call check_inv_opts(11, i)
+                                    else if (setting =='weighting function') then
+                                        read(value, *, IOSTAT=io_stat) Fw_type(i)
+                                    else if (setting =='mean and sd of weighting function') then
+                                        read(value, *, IOSTAT=io_stat) Fw_parm(i, 1), Fw_parm(i, 2)
+                                        call check_inv_opts(12, i)
+                                    else if (setting =='links') then
+                                        if (EXTRNL) then
+                                            ! Handle external constraint file
+                                            inquire(file=trim(value), exist=exst)
+                                            if (.not. exst) then
+                                                call check_inv_opts(35, i)
+                                            else
+                                                call check_inv_opts(36, i)
+                                                open(13, file='external_files.tmp', status='old', action='write', position='append')
+                                                write(13, *) i, trim(value)
+                                                close(13)
+                                            end if
+                                            call check_inv_opts(34, i)
+                                        else
+                                            ! Read links
+                                            read(value, *, IOSTAT=io_stat) zone_links(i, 1), (zone_links(i, j+1), j=1, zone_links(i, 1))
+                                            call check_inv_opts(13, i)
+                                        end if
+                                    else if (setting =='reference value') then
+                                        if (trim(value) == "ref" .or. trim(value) == "REF" .or. trim(value) == "Ref") then
+                                            smetric(i, 3) = 1
+                                            call check_inv_opts(14, i)
+                                        elseif (trim(value) == "pref" .or. trim(value) == "PREF" .or. trim(value) == "Pref") then
+                                            if (.not. tl_ly) call check_inv_opts(31, i)
+                                            smetric(i, 3) = 2
+                                            call check_inv_opts(14, i)
+                                            if (.not. allocated(prefsig)) then
+                                                allocate (prefsig(n_elements))
+                                                if (invi) then
+                                                    prefsig = phase
+                                                else
+                                                    prefsig = sigma_re
+                                                end if
+                                            end if
+                                        else
+                                            read(value, *, IOSTAT=io_stat) C_targ(i)
+                                            call check_inv_opts(14, i)
+                                            if (smetric(i, 2) .eq. 3 .or. smetric(i, 2) .eq. 4 .or. smetric(i, 2) .eq. 7 .or. smetric(i, 2) .eq. 8) then
+                                                if (C_targ(i) .le. 0) call check_inv_opts(32, i)
+                                                C_targ(i) = log(C_targ(i))
+                                            end if
+                                        end if
+                                    else if (setting =='relative weight') then
+                                        read(value, *, IOSTAT=io_stat) zwts(i, 1)
+                                        call check_inv_opts(15, i)
+                                        call check_inv_opts(16, i)
+                                        
+                                        ! Normalize the directional weighting vector
+                                        rdum = sqrt(zwts(i, 2)**2 + zwts(i, 3)**2 + zwts(i, 4)**2)
+                                        zwts(i, 2:4) = zwts(i, 2:4)/rdum
+                                        
+                                        exit  ! End of this zone's settings
+                                    end if
+                                end do
+                            end do
+
+                            ! Check that all zones are covered
+                            allocate(zflag(nzn))
+                            zflag = 0
+                            do i = 1, nrz
+                                if (smetric(i, 1) > 0 .and. smetric(i, 1) <= nzn) then
+                                    zflag(smetric(i, 1)) = 1
+                                else
+                                end if
+                            end do
+                            do i = 1, nzn
+                                if (zflag(i) == 0) then
+                                    call check_inv_opts(18, i)
+                                end if
+                            end do
+
+                            ! Check for reference model
+                            if (allocated(refsig)) deallocate(refsig)
+                            allocate(refsig(n_elements))
+                            refsig = 1.0
+                            do i = 1, nrz
+                                if (smetric(i, 3) == 1) then
+                                    refmod_flag = .true.
+                                    call check_inv_opts(18, i)
+                                    open(11, file=trim(refmod_file), status='old', action='read')
+
+                                    if (allocated(element_map)) then
+                                        k = 0
+                                        read(11, *, IOSTAT=io_stat) nstmp
+                                        if (invi) then
+
+                                            do j = 1, nstmp
+                                                read(11, *, IOSTAT=io_stat) rsig, isig
+                                                if (io_stat .ne. 0) then
+                                                    call check_inv_opts(20, j)
+                                                end if
+                                                if (element_map(j) .ne. 0) then
+                                                    k = k + 1
+                                                    refsig(element_map(j)) = atan(isig/rsig)
+                                                end if
+                                            end do
+
+                                        else
+
+                                            do j = 1, nstmp
+                                                read(11, *, IOSTAT=io_stat) rsig
+                                                if (io_stat .ne. 0) then
+                                                    call check_inv_opts(20, j)
+                                                end if
+                                                if (element_map(j) .ne. 0) then
+                                                    k = k + 1
+                                                    refsig(element_map(j)) = rsig
+                                                end if
+                                            end do
+
+                                        end if
+
+                                        call check_inv_opts(19, k)
+                                    else
+                                        read(11, *, IOSTAT=io_stat) nstmp
+                                        if (invi) then
+                                            k = 0
+                                            do j = 1, nstmp
+                                                read(11, *, IOSTAT=io_stat) rsig, isig
+                                                if (io_stat .ne. 0) then
+                                                    call check_inv_opts(20, j)
+                                                end if
+                                                refsig(j) = atan(isig/rsig)
+                                            end do
+
+                                        else
+
+                                            do j = 1, nstmp
+                                                read(11, *, IOSTAT=io_stat) refsig(j)
+                                                if (io_stat .ne. 0) then
+                                                    call check_inv_opts(20, j)
+                                                end if
+                                            end do
+
+                                        end if
+                                        if (im_fmm) refsig = 1/refsig
+                                    end if
+                                    close(11)
+                                    exit
+                                end if
+                            end do
+
+                            if (.not. refmod_flag) then
+                                call check_inv_opts(37, junk)
+                            end if
+
+                            ! Initialize default values
+                            conv_opt = 1
+                            delta_initer = 0.001
+                            initer_conv = 1e-4
+
+                            ! Read remaining inversion parameters
+                            do
+                                read(10, '(A)', IOSTAT=io_stat) line
+                                if (io_stat /= 0) then
+                                    exit
+                                end if
+                                call parse_line(line, setting, value)
+                                
+                                if (setting =='run number' .or. setting =='inversion settings') then
+                                    backspace(10)
+                                    exit
+                                end if
+                                
+                                if (setting =='initial beta') then
+                                    read(value, *, IOSTAT=io_stat) beta
+                                    beta_s = beta
+                                else if (setting =='minimum fractional decrease in beta') then
+                                    read(value, *, IOSTAT=io_stat) del_obj
+                                else if (setting =='beta reduction proportion') then
+                                    read(value, *, IOSTAT=io_stat) beta_red
+                                    call check_inv_opts(21, junk)
+                                else if (setting =='chi2 target value') then
+                                    read(value, *, IOSTAT=io_stat) norm_chi2
+                                    call check_inv_opts(22, junk)
+                                else if (setting =='moving average window size') then
+                                    read(value, *, IOSTAT=io_stat) chi2_hist_size
+                                else if (setting =='minimum change in moving average') then
+                                    read(value, *, IOSTAT=io_stat) chi2_conv_thresh
+                                    call check_inv_opts(23, junk)
+                                else if (setting =='inner iteration bounds') then
+                                    read(value, *, IOSTAT=io_stat) min_initer, max_initer
+                                    call check_inv_opts(24, junk)
+                                else if (setting =='conductivity constraints') then
+                                    read(value, *, IOSTAT=io_stat) min_sig, max_sig
+                                    call check_inv_opts(25, junk)
+                                else if (setting =='beta mode') then
+                                    read(value, *, IOSTAT=io_stat) up_opt
+                                    call check_inv_opts(26, junk)
+                                    if (up_opt == 1) then
+                                        ! This would need line search parameters - not implemented in new format yet
+                                        up_opt = 2  ! Default to simple update
+                                    end if
+                                    ! Default to no line search for now
+                                    select case (up_opt)
+                                    case (1)
+                                        up_opt = 2
+                                    case (3)
+                                        conv_opt = 2
+                                        up_opt = 2
+                                    case DEFAULT
+                                        up_opt = 2
+                                    end select
+                                else if (setting =='outlier removal mode') then
+                                    read(value, *, IOSTAT=io_stat) cull_flag
+                                else if (setting =='maximum outlier sd') then
+                                    read(value, *, IOSTAT=io_stat) cull_dev
+                                    call check_inv_opts(29, junk)
+                                    allocate(Wd_cull(nm))
+                                    Wd_cull = 1.0
+                                    nec = 0
+                                end if
+                            end do
+
+                            exit  ! Exit inner loop - found and processed the inversion settings
+                        end if
+                    end do
+                    exit  ! Exit outer loop - processed the correct run number
                 end if
             end if
-            read (10, *, IOSTAT=io_stat) str1; call check_inv_opts(6, i)
-            read (10, *, IOSTAT=io_stat) rdum; call check_inv_opts(7, i)
         end do
 
-        !reset the external file list
-        open (13, file='external_files.tmp', status='replace', action='write')
-        close (13)
-
-        rewind (10)
-        allocate (zone_links(nrz, max_nlink + 1))
-        zone_links = 0
-        nzn = int(maxval(zones))
-        zwts = 0
-
-        read (10, *, IOSTAT=io_stat) nrz; call check_inv_opts(8, junk)
-        smetric = 0
-        C_targ = 0
-
-        do i = 1, nrz
-            EXTRNL = .false.
-            call check_inv_opts(9, i)
-
-            !check for external
-            read (10, *, IOSTAT=io_stat) str1; 
-            if (trim(str1) .ne. 'EXTRNL' .and. trim(str1) .ne. 'External' .and. trim(str1) .ne. 'external') then
-                read (str1, *, IOSTAT=io_stat) smetric(i, 1)
-                call check_inv_opts(10, i)
-            else
-          !!smetric(i,1) is the zone this regularization block operates one
-          !!for external constraints that zone is specified as nzn+1 to distinguish
-          !!from any zone that exists in the mesh
-                EXTRNL = .true.
-                smetric(i, 1) = nzn + 1
-                call check_inv_opts(10, -1)
-            end if
-
-            read (10, *) smetric(i, 2), zwts(i, 2:4); call check_inv_opts(11, i)
-
+        close(10)
         
-
-            read (10, *) Fw_type(i), Fw_parm(i, 1:2); call check_inv_opts(12, i)
-            if (EXTRNL) then
-                read (10, *, IOSTAT=io_stat) str1; call check_inv_opts(34, i)
-                inquire (file=trim(str1), EXIST=exst)
-                if (.not. exst) then
-                    call check_inv_opts(35, i)
-                else
-                    tmpstr = str1
-                    call check_inv_opts(36, i)
-                    open (11, file='external_files.tmp', status='old', action='write', position='append')
-                    write (11, *) i, trim(str1)
-                    close (11)
-                end if
-            else
-                read (10, *) zone_links(i, 1:itmp(i) + 1); call check_inv_opts(13, i)
-            end if
-
-            read (10, *, IOSTAT=io_stat) str1
-            if (str1 == "ref" .or. str1 == "REF" .or. str1 == "Ref") then
-                smetric(i, 3) = 1; call check_inv_opts(14, i)
-            elseif (str1 == "pref" .or. str1 == "PREF" .or. str1 == "Pref") then
-                if (.not. tl_ly) call check_inv_opts(31, i)
-                smetric(i, 3) = 2; call check_inv_opts(14, i)
-                if (.not. allocated(prefsig)) then
-                    allocate (prefsig(n_elements))
-                    if (invi) then
-                        prefsig = phase
-                    else
-                        prefsig = sigma_re
-                    end if
-                end if
-            else
-                read (str1, *, IOSTAT=io_stat) C_targ(i); call check_inv_opts(14, i)
-                if (smetric(i, 2) .eq. 3 .or. smetric(i, 2) .eq. 4 .or. smetric(i, 2) .eq. 7 .or. smetric(i, 2) .eq. 8) then
-                    if (C_targ(i) .le. 0) call check_inv_opts(32, i)
-                    C_targ(i) = log(C_targ(i))
-                end if
-            end if
-
-            read (10, *, IOSTAT=io_stat) zwts(i, 1); call check_inv_opts(15, i)
-            call check_inv_opts(16, i)
-
-            rdum = sqrt(zwts(i, 2)**2 + zwts(i, 3)**2 + zwts(i, 4)**2)
-            zwts(i, 2:4) = zwts(i, 2:4)/rdum
-
-        end do
-
-        allocate (zflag(nzn))
-        zflag = 0
-        do i = 1, nrz
-            if (smetric(i, 1) .le. nzn) then
-                zflag(smetric(i, 1)) = 1
-            end if
-        end do
-        do i = 1, nzn
-            if (zflag(i) == 0) then
-                call check_inv_opts(17, i)
-            end if
-        end do
-
-    !!check for reference model
-        if (allocated(refsig)) deallocate (refsig)
-        allocate (refsig(n_elements))
-        refsig = 1.0
-        do i = 1, nrz
-            if (smetric(i, 3) == 1) then
-                refmod_flag = .true.
-                call check_inv_opts(18, i)
-                open (11, file=trim(refmod_file), status='old', action='read')
-
-                if (allocated(element_map)) then
-                    k = 0
-                    read (11, *, IOSTAT=io_stat) nstmp
-                    if (invi) then
-
-                        do j = 1, nstmp
-                            read (11, *, IOSTAT=io_stat) rsig, isig
-                            if (io_stat .ne. 0) then
-                                call check_inv_opts(20, j)
-                            end if
-                            if (element_map(j) .ne. 0) then
-                                k = k + 1
-                                refsig(element_map(j)) = atan(isig/rsig)
-                            end if
-                        end do
-
-                    else
-
-                        do j = 1, nstmp
-                            read (11, *, IOSTAT=io_stat) rsig
-                            if (io_stat .ne. 0) then
-                                call check_inv_opts(20, j)
-                            end if
-                            if (element_map(j) .ne. 0) then
-                                k = k + 1
-                                refsig(element_map(j)) = rsig
-                            end if
-                        end do
-
-                    end if
-
-                    call check_inv_opts(19, k)
-                else
-                    read (11, *, IOSTAT=io_stat) nstmp; 
-                    if (invi) then
-                        k = 0
-                        do j = 1, nstmp
-                            read (11, *, IOSTAT=io_stat) rsig, isig
-                            if (io_stat .ne. 0) then
-                                call check_inv_opts(20, j)
-                            end if
-                            refsig(j) = atan(isig/rsig)
-                        end do
-
-                    else
-
-                        do j = 1, nstmp
-                            read (11, *, IOSTAT=io_stat) refsig(j)
-                            if (io_stat .ne. 0) then
-                                call check_inv_opts(20, j)
-                            end if
-                        end do
-
-                    end if
-                    if (im_fmm) refsig = 1/refsig
-                end if
-                close (11)
-                exit
-            end if
-        end do
-
-        if (.not. refmod_flag) then
-            call check_inv_opts(37, junk)
-        end if
-
-        read (10, *, IOSTAT=io_stat) beta, del_obj, beta_red; call check_inv_opts(21, junk)
-        beta_s = beta
-        conv_opt = 1
-
-        read (10, *, IOSTAT=io_stat) norm_chi2; call check_inv_opts(22, junk)
-        read (10, *, IOSTAT=io_stat) chi2_hist_size, chi2_conv_thresh; call check_inv_opts(23, junk)
-        read (10, *, IOSTAT=io_stat) min_initer, max_initer; call check_inv_opts(24, junk)
-        delta_initer = 0.001
-        initer_conv = 1e-4;
-        read (10, *, IOSTAT=io_stat) min_sig, max_sig; call check_inv_opts(25, junk)
-
-        read (10, *, IOSTAT=io_stat) up_opt; call check_inv_opts(26, junk)
-        if (up_opt == 1) then
-            read (10, *, IOSTAT=io_stat) nlsp; call check_inv_opts(27, junk)
-            nlsp = nlsp + 1
-            allocate (lsp(nlsp))
-            read (10, *) lsp(2:nlsp); call check_inv_opts(28, junk)
-            lsp(1) = 0
-        end if
-
-        !default to no line search for now until further testing: tcj-Aug 7, 2014
-        select case (up_opt)
-        case (1)
-            up_opt = 2
-        case (3)
-            conv_opt = 2
-            up_opt = 2
-        case DEFAULT
-            up_opt = 2
-        end select
-
-        read (10, *, IOSTAT=io_stat) cull_flag, cull_dev; call check_inv_opts(29, junk)
-        allocate (Wd_cull(nm))
-        Wd_cull = 1.0
-        nec = 0
-
-        !call check_inv_opts(29,junk)
-
-        close (10)
-        return
-
-    end subroutine get_inv_optsII
-    !___________________________________________________________________________________
-
-    ! The subroutine below is deprecated and is not used.
-    !__________________________________________________________________________________
-    subroutine get_inv_opts
-    !!reads in the inversion regularization and weighting options
-        implicit none
-        integer :: i, j, k, max_nlink, izn, nstmp
-        logical :: exst
-        character*40 :: fnam
-
-        integer, dimension(:), allocatable :: itmp
-        open (51, file='e4d.log', status='old', action='write', position='append')
-        inquire (file=trim(invfile), exist=exst)
-        if (.not. exst) then
-            write (51, 1001) trim(invfile)
-            close (51)
-            stop
-        end if
-
-        open (10, file=invfile, status='old', action='read')
-        read (10, *) nrz
-        write (51, *)
-        write (51, *) "NUMBER OF REGULARIZED ZONES", nrz
-        close (51)
-
-        open (51, file='e4d.log', status='old', action='write', position='append')
-
-        allocate (reg_opt(nrz), zwts(nrz, 4), itmp(nrz))
-        reg_opt = -1
-
-    !!find the maximum number of zone links for a given zone
-        max_nlink = 0
-        do i = 1, nrz
-            read (10, *) izn
-            if (izn > nrz) then
-                write (51, *) 'REGULARIZATION HAS BEEN SPECIFIED FOR ZONE ', izn
-                write (51, *) 'BUT ONLY ', nrz, ' ZONES ARE SPECIFIED IN ', trim(invfile)
-                stop
-            end if
-            read (10, *) reg_opt(izn)
-            read (10, *) itmp(izn)
-            if (itmp(izn) > max_nlink) then
-                max_nlink = itmp(izn)
-            end if
-            read (10, *) zwts(izn, 1)
-        end do
-
-    !!check for geostat constraints
-        read (10, *) i
-        if (i == 1) then
-            gs_flag = .true.
-        end if
-
-        rewind (10)
-        allocate (zone_links(nrz, max_nlink + 1))
-
-        close (51)
-
-        open (51, file='e4d.log', status='old', action='write', position='append')
-        zwts = 0
-        read (10, *) nrz
-        write (51, *) '            ------------------------------------------'
-        do i = 1, nrz
-
-            read (10, *) izn
-            if (reg_opt(izn) == 2 .or. reg_opt(izn) == 4) then
-                read (10, *) reg_opt(izn), zwts(izn, 2:4)
-            else
-                read (10, *) reg_opt(izn)
-            end if
-
-            read (10, *) zone_links(izn, 1:itmp(izn) + 1)
-            read (10, *) zwts(izn, 1)
-            write (51, *) '            zone: ', izn
-            write (51, *) '            regularization option: ', reg_opt(izn)
-            if (reg_opt(izn) == 2) then
-                write (51, *) '            x y z weights: ', zwts(izn, 2:4)
-            end if
-            write (51, *) '            linked to zones: ', zone_links(izn, 2:zone_links(izn, 1) + 1)
-            write (51, *) '            zone weight: ', zwts(izn, 1)
-            write (51, *) '            ------------------------------------------'
-
-            if (zone_links(izn, 1) > nrz - 1) then
-                write (51, *) "TOO MANY ZONE LINKS SPECIFIED"
-                write (51, *) 'THERE ARE ONLY ', nrz - 1, 'ZONES TO LINK WITH (see "linked to zones" above)'
-                stop
-            end if
-            do j = 2, zone_links(izn, 1) + 1
-                if (zone_links(izn, j) == izn) then
-                    write (*, *) 'A ZONE MAY NOT BE LINKED WITH ITSELF (see "linked to zones" above)'
-                    stop
-                end if
-            end do
-
-        end do
-        close (51)
-
-        if (.not. gs_flag) then
-            read (10, *) i
-        else
-            read (10, *) i, gs_file
-            !call get_geo_opts(nrz,reg_opt,gs_file)
-        end if
-
-    !!check for reference model
-        do i = 1, nrz
-            if (reg_opt(i) == 3) then
-                open (51, file='e4d.log', status='old', action='write', position='append')
-                write (51, *) "AT LEAST ONE ZONE USES TRANSIENT REGULARIZATION"
-                write (51, *) "READING REFERENCE MODEL ", refmod_file
-
-                open (11, file=trim(refmod_file), status='old', action='read')
-                read (11, *) nstmp
-                if (nstmp .ne. model_size) then
-                    write (51, *) "!!!!!WARNING!!!!!"
-                    write (51, *) "THE NUMBER OF ELEMENTS IN THE STARTING MODEL "
-                    write (51, *) "AND THE REFERENCE MODEL ARE DIFFERENT ", model_size, nstmp
-
-                end if
-                allocate (refsig(model_size))
-                do j = 1, nstmp
-                    read (11, *) refsig(j)
-                end do
-                close (11)
-                close (51)
-                goto 100
-            else
-                allocate (refsig(model_size))
-                refsig = 1.0
-                goto 100
-            end if
-        end do
-
-100     continue
-
-        open (51, file='e4d.log', status='old', action='write', position='append')
-        read (10, *) beta, beta_red
-        beta_s = beta
-        if (beta < 0) then
-            write (51, *) "The beta value in the inverse options file must be greater than 0."
-            write (51, *) "The value you provided is, ", beta
-            stop
-        end if
-        if (beta_red < 0 .or. beta_red > 1) then
-            write (51, *) "The beta reduction parameter in the inverse options file should"
-            write (51, *) "be in the range 0 < beta_red < 1. The value you provided is ", beta_red
-            beta_red = 0.5
-            write (51, *) "beta_red has been changed to the default value of 0.5"
-        end if
-        write (51, *) "BETA AND BETA_RED ARE ", beta, beta_red
-        close (51)
-
-        read (10, *) conv_opt, norm_chi2, del_obj
-
-        if (conv_opt == 0) conv_opt = 1
-        if (norm_chi2 == 0) norm_chi2 = 1.0
-        if (del_obj == 0) del_obj = 0.05
-        open (51, file='e4d.log', status='old', action='write', position='append')
-        write (51, *) "CONVERGENCE OPTION = ", conv_opt
-        write (51, *) "TARGET CHI-SQUARED = ", norm_chi2
-        write (51, *) "CHI-SQUARED RUNNING AVERAGE HISTORY SIZE = ", chi2_hist_size
-        write (51, *) "CHI-SQUARED CONVERGENCE THRESHOLD = ", chi2_conv_thresh
-        write (51, *) "MINIMUM OBJECTIVE FUNCTION REDUCTION = ", del_obj
-        close (51)
-
-        read (10, *) min_initer, max_initer, initer_conv, delta_initer
-        if (min_initer == 0) min_initer = 20
-        if (max_initer == 0) max_initer = 100
-        if (delta_initer == 0) delta_initer = 0.05
-        open (51, file='e4d.log', status='old', action='write', position='append')
-        write (51, *) "MINIMUM INNER ITERATIONS = ", min_initer
-        write (51, *) "MAXIMUM INNER ITERATIONS = ", max_initer
-        close (51)
-
-        read (10, *) max_sig, min_sig
-        open (51, file='e4d.log', status='old', action='write', position='append')
-        write (51, *) "MIN/MAX CONDUCTIIVITY = ", min_sig, max_sig
-
-        read (10, *) up_opt
-        if (up_opt == 1) then
-            read (10, *) red_fac
-            read (10, *) nlsp
-            if (nlsp < 1) then
-                write (51, *) "Line search updating has been specified in the inverse options file."
-                write (51, *) "However, you have specified ", nlsp, " line search points."
-                stop
-            end if
-            nlsp = nlsp + 1
-            allocate (lsp(nlsp))
-            read (10, *) lsp(2:nlsp)
-            lsp(1) = 0
-            write (51, *) "LINE SEARCH SPECIFIED"
-
-        else if (up_opt == 2) then
-            read (10, *) red_fac
-            !read(10,*) js_perc !not used
-            !read(10,*) js_perc !not used
-
-            write (51, *) "NO LINE SEARCH SPECIFIED WITH UPDATE VECTOR SCALING OF ", red_fac
-
-        else
-            write (51, *) "The update option parameter up_opt in the inversion options"
-            write (51, *) "file must be either 1 or 2. The value you provided is ", up_opt
-            stop
-
-        end if
-        close (51)
-
-    !!read in the cull options
-        read (10, *) cull_flag, cull_dev
-        allocate (Wd_cull(nm))
-        Wd_cull = 1.0
-        open (51, file='e4d.log', status='old', action='write', position='append')
-        write (51, *) "CULL DATA OPTION = ", cull_flag, " CULL STD. DEVIATION = ", cull_dev
-        write (51, *) "____________________________________________________________________"
-        write (51, *)
-        close (51)
-
-    !!check for external constraints file and read if it exists
-        nec = 0
-        if (gs_flag) then
-            read (10, *) fnam
-            inquire (file=trim(fnam), exist=exst)
-            if (exst) then
-
-                open (51, file='e4d.log', status='old', action='write', position='append')
-                write (51, *) "READING EXTERNAL CONSTRAINTS FILE (GEOSTAT): ", trim(fnam)
-                write (51, *) "____________________________________________________________________"
-                write (51, *)
-                close (51)
-                open (11, file=fnam, status='old', action='read')
-                read (11, *) nec
-                allocate (ex_cols(nec), ex_vals(nec, 3), gwts(nec))
-                do i = 1, nec
-                    read (11, *) ex_cols(i), ex_vals(i, 1:3), gwts(i)
-                end do
-                close (11)
-            else
-                open (51, file='e4d.log', status='old', action='write', position='append')
-                write (51, *) "CANNOT FIND EXTERNAL CONSTRAINTS FILE: ", trim(fnam)
-                write (51, *) "EXTERNAL CONSTRAINTS WILL NOT BE IMPLEMENTED"
-                write (51, *) "____________________________________________________________________"
-                write (51, *)
-                close (51)
-            end if
-
-        else
-            read (10, *) fnam
-            inquire (file=trim(fnam), exist=exst)
-            if (exst) then
-                open (51, file='e4d.log', status='old', action='write', position='append')
-                write (51, *) "READING EXTERNAL CONSTRAINTS FILE (REGULARIZED): ", trim(fnam)
-                write (51, *) "____________________________________________________________________"
-                write (51, *)
-                close (51)
-                open (11, file=fnam, status='old', action='read')
-                read (11, *) nec
-                allocate (ex_cols(nec), ex_vals(nec, 3), gwts(nec))
-                do i = 1, nec
-                    read (11, *) ex_cols(i), ex_vals(i, 1:3)
-                end do
-                close (11)
-                write (*, *) my_rank, nec
-            else
-                open (51, file='e4d.log', status='old', action='write', position='append')
-                write (51, *) "CANNOT FIND EXTERNAL CONSTRAINTS FILE: ", trim(fnam)
-                write (51, *) "EXTERNAL CONSTRAINTS WILL NOT BE IMPLEMENTED"
-                write (51, *) "____________________________________________________________________"
-                write (51, *)
-                close (51)
-            end if
-
-        end if
-        close (10)
-
-1001    format(' CANNOT FIND THE INVERSION OPTIONS FILE ', A)
     end subroutine get_inv_opts
-    !_________________________________________________________________________
+
+    !__________________________________________________________________________________
 
     !_________________________________________________________________________
     subroutine get_dobs_rt(ind)
@@ -2435,7 +2354,7 @@ contains
                 open (51, file='e4d.log', status='old', action='write', position='append')
             end if
             write (51, *)
-            write (51, "(A30,I10)") "CONSTRAINT BLOCK: ", indx
+            write (51, "(A33,I12)") "CONSTRAINT BLOCK              :", indx
             close (51)
 
         case (10)
@@ -2445,9 +2364,9 @@ contains
                 open (51, file='e4d.log', status='old', action='write', position='append')
             end if
             if (indx == -1) then
-                write (51, "(A47)") "Zone Number:          EXTERNAL"
+                write (51, "(A47)") "Zone Number               :          EXTERNAL"
             else
-                write (51, "(A30,I10)") "Zone Number: ", smetric(indx, 1)
+                write (51, "(A33,I12)") "Zone Number                   :", smetric(indx, 1)
             end if
             close (51)
 
@@ -2482,7 +2401,7 @@ contains
                 call crash_exit
 
             else
-                write (51, "(A30,I10)") "Structure Metric: ", smetric(indx, 2)
+                write (51, "(A33,I12)") "Structure Metric              :", smetric(indx, 2)
                 if (smetric(indx, 2) < 0 .or. smetric(indx, 2) > 13) then
                     write (51, *) " Invalid structural metric "
                     write (51, *) " Aborting"
@@ -2490,7 +2409,7 @@ contains
                     call crash_exit
                 end if
                 if (smetric(indx, 2) == 5 .or. smetric(indx, 2) == 6 .or. smetric(indx, 2) .ge. 12) then
-                    write (51, "(A30,3G10.3)") "X,Y,Z Weights: ", zwts(indx, 2), zwts(indx, 3), zwts(indx, 4)
+                    write (51, "(A33,3G10.3)") "X,Y,Z Weights    : ", zwts(indx, 2), zwts(indx, 3), zwts(indx, 4)
                 end if
                 close (51)
             end if
@@ -2525,7 +2444,7 @@ contains
                 call crash_exit
 
             else
-                write (51, "(A30,I10)") "Reweighting Function: ", Fw_type(indx)
+                write (51, "(A33,I12)") "Reweighting Function          :", Fw_type(indx)
                 if (Fw_type(indx) < 1 .or. Fw_type(indx) > 6) then
                     write (51, *) " Invalid reweighting function"
                     write (51, *) " Aborting"
@@ -2533,13 +2452,13 @@ contains
                     call crash_exit
                 end if
                 if (Fw_parm(indx, 2) < 0.0) then
-                    write (51, "(A30,8x,2G12.5)") "Reweighting Mean, St.Dev.: ", Fw_parm(indx, 1), Fw_parm(indx, 2) ! Increase witdth in format descriptor. - OFGN 1/10/23
+                    write (51, "(A33,2F12.5)") "Reweighting Mean, St.Dev.     :", Fw_parm(indx, 1), Fw_parm(indx, 2) ! Increase witdth in format descriptor. - OFGN 1/10/23
                     write (51, *) " Reweighting function deviation must be greater than zero"
                     write (51, *) " Aborting ..."
                     close (51)
                     call crash_exit
                 end if
-                write (51, "(A30,8x,2G12.5)") "Reweighting Mean, St.Dev.: ", Fw_parm(indx, 1), Fw_parm(indx, 2) ! Increase witdth in format descriptor. - OFGN 1/10/23
+                write (51, "(A33,2F12.5)") "Reweighting Mean, St.Dev.     :", Fw_parm(indx, 1), Fw_parm(indx, 2) ! Increase witdth in format descriptor. - OFGN 1/10/23
                 close (51)
             end if
 
@@ -2557,7 +2476,7 @@ contains
                 close (51)
                 call crash_exit
             else
-                write (51, "(A30,I10)") "Number of Zone Links: ", zone_links(indx, 1)
+                write (51, "(A33,I12)") "Number of Zone Links          :", zone_links(indx, 1)
                 if (zone_links(indx, 1) < 0) then
                     write (51, *) " The number of zone links must be greater than or equal to zero"
                     write (51, *) " Aborting ..."
@@ -2567,7 +2486,7 @@ contains
 
                 nzn = maxval(zones)
                 do ii = 1, zone_links(indx, 1)
-                    write (51, "(A30,I10)") "Linked to Zone: ", zone_links(indx, ii + 1)
+                    write (51, "(A33,I12)") "Linked to Zone                :", zone_links(indx, ii + 1)
                     if (zone_links(indx, ii + 1) > nzn) then
                         write (51, *) "  !!!WARNING: this zone link is out of range"
                     end if
@@ -2592,11 +2511,11 @@ contains
                 ii = smetric(indx, 2)
                 if (ii == 3 .or. ii == 4 .or. ii == 7 .or. ii == 8) then
                     if (smetric(indx, 3) == 1) then
-                        write (51, "(A39,A)") "Reference model file:          ", trim(refmod_file)
+                        write (51, "(A39,A)") "Reference model file:             ", trim(refmod_file)
                     elseif (smetric(indx, 3) == 2) then
-                        write (51, "(A30,A26)") "Reference Value: ", "         Previous Solution."
+                        write (51, "(A33,A26)") "Reference Value    : ", "         Previous Solution."
                     else
-                        write (51, "(A30,G12.5)") "Reference Value: ", C_targ(indx) ! Increase witdth in format descriptor. - OFGN 1/10/23
+                        write (51, "(A33,G12.5)") "Reference Value    : ", C_targ(indx) ! Increase witdth in format descriptor. - OFGN 1/10/23
                     end if
                 end if
             end if
@@ -2617,7 +2536,7 @@ contains
                 close (51)
                 call crash_exit
             else
-                write (51, "(A30,8x,G12.5)") "Relative Weight: ", zwts(indx, 1) ! Increase witdth in format descriptor. - OFGN 1/10/23
+                write (51, "(A33,F12.4)") "Relative Weight               :", zwts(indx, 1) ! Increase witdth in format descriptor. - OFGN 1/10/23
                 if (zwts(indx, 1) < 0) then
                     write (51, *) " The relative weight for each block must be greater than or equal to zero"
                     write (51, *) " Aborting ..."
@@ -2739,9 +2658,9 @@ contains
                 call crash_exit
             else
                 write (51, *)
-                write (51, "(A30,8x,G12.5)") "Starting beta value: ", beta ! Increase witdth in format descriptor. - OFGN 1/10/23
-                write (51, "(A30,9x,G12.5)") "Minimum objective reduction: ", del_obj ! Increase witdth in format descriptor. - OFGN 1/10/23
-                write (51, "(A30,9x,G12.5)") "Beta reduction parameter: ", beta_red ! Increase witdth in format descriptor. - OFGN 1/10/23
+                write (51, "(A33,F12.4)") "Starting beta value           :", beta ! Increase witdth in format descriptor. - OFGN 1/10/23
+                write (51, "(A33,F12.4)") "Minimum objective reduction   :", del_obj ! Increase witdth in format descriptor. - OFGN 1/10/23
+                write (51, "(A33,F12.4)") "Beta reduction parameter      :", beta_red ! Increase witdth in format descriptor. - OFGN 1/10/23
 
             end if
 
@@ -2808,7 +2727,7 @@ contains
 
             else
                 !write(51,*)
-                write (51, "(A30,8x,G12.5)") "Target chi-squared value: ", norm_chi2 ! Increase witdth in format descriptor. - OFGN 1/10/23
+                write (51, "(A33,F12.4)") "Target chi-squared value      :", norm_chi2 ! Increase witdth in format descriptor. - OFGN 1/10/23
             end if
             close (51)
 
@@ -2831,8 +2750,8 @@ contains
                 close (51)
                 call crash_exit
             else
-                write (51, "(A30,8x,G12.5)") "Running average window: ", chi2_hist_size
-                write (51, "(A30,8x,G12.5)") "Running average threshold (%): ", chi2_conv_thresh
+                write (51, "(A33,I12)") "Running average window        :", chi2_hist_size
+                write (51, "(A33,F12.4)") "Running average threshold (%) :", chi2_conv_thresh
             end if
 
             if (chi2_hist_size < 2) then
@@ -2863,8 +2782,8 @@ contains
                 call crash_exit
             else
                 !write(51,*)
-                write (51, "(A30,I10)") "Minimum # inner iterations: ", min_initer
-                write (51, "(A30,I10)") "Maximum # inner iterations: ", max_initer
+                write (51, "(A33,I12)") "Minimum # inner iterations    :", min_initer
+                write (51, "(A33,I12)") "Maximum # inner iterations    :", max_initer
                 !if(min_initer<30) then
                 !   write(51,*) " WARNING"
                 !   write(51,*) " The recommended minimum number of inner iterations is 30"
@@ -2903,11 +2822,11 @@ contains
             else
                 !write(51,*)
                 if (invi) then
-                    write (51, "(A30,9x,G12.5)") "Maximum phase: ", max_sig ! Increase witdth in format descriptor. - OFGN 1/10/23
-                    write (51, "(A30,9x,G12.5)") "Minimum phase: ", min_sig ! Increase witdth in format descriptor. - OFGN 1/10/23
+                    write (51, "(A33,E12.5)") "Maximum phase                 :", max_sig ! Increase witdth in format descriptor. - OFGN 1/10/23
+                    write (51, "(A33,E12.5)") "Minimum phase                 :", min_sig ! Increase witdth in format descriptor. - OFGN 1/10/23
                 else
-                    write (51, "(A30,9x,G12.5)") "Maximum conductivity: ", max_sig ! Increase witdth in format descriptor. - OFGN 1/10/23
-                    write (51, "(A30,9x,G12.5)") "Minimum conductivity: ", min_sig ! Increase witdth in format descriptor. - OFGN 1/10/23
+                    write (51, "(A33,E12.5)") "Maximum conductivity          :", max_sig ! Increase witdth in format descriptor. - OFGN 1/10/23
+                    write (51, "(A33,E12.5)") "Minimum conductivity          :", min_sig ! Increase witdth in format descriptor. - OFGN 1/10/23
                 end if
             end if
 
@@ -2957,12 +2876,12 @@ contains
 
             elseif (up_opt == 1) then
                 !write(51,*)
-                write (51, "(A30,A)") "Update option: ", "Line search"
+                write (51, "(A33,A)") "Update option                 :", "         Line search"
             elseif (up_opt == 2) then
                 !write(51,*)
-                write (51, "(A30,9x,A)") "Update option: ", "No line search"
+                write (51, "(A33,A)") "Update option                 :", "         No line search"
             elseif (up_opt == 3) then
-                write (51, "(A30,A)") "Update option: ", "No beta cooling"
+                write (51, "(A33,A)") "Update option                 :", "         No beta cooling"
             else
                 write (51, *)
                 write (51, *) " The update option specified in the inverse options"
@@ -2994,7 +2913,7 @@ contains
                 close (51)
             else
                 write (51, *)
-                write (51, "(A30,I10)") "# line search scalings: ", nlsp
+                write (51, "(A33,I12)") "# line search scalings    : ", nlsp
             end if
 
             if (nlsp < 1) then
@@ -3081,9 +3000,9 @@ contains
                 call crash_exit
             else
                 if (cull_flag == 0) then
-                    write (51, "(A30)") "No data culling"
+                    write (51, "(A33)") "No data culling                "
                 elseif (cull_flag == 1) then
-                    write (51, "(A30,8x,G12.5)") "Data culling st. deviation: ", cull_dev ! Increase witdth in format descriptor. - OFGN 1/10/23
+                    write (51, "(A33,F12.4)") "Data culling st. deviation    :", cull_dev ! Increase witdth in format descriptor. - OFGN 1/10/23
                 end if
                 close (51)
             end if
@@ -3340,21 +3259,27 @@ contains
             end do
             close (51)
         end if
-        if (any(pos_dobsi_idx)) then
-            write(*, *) "WARNING: Some phase values are positive. These will be treated as missing data."
-            write(*, *) "Please check your survey file for errors."
-            write(*, *) "Indicies of positive phase values output to the log file."
-            open (51, file='e4d.log', status='old', action='write', position='append')
-            write(51, *) "WARNING: Some phase values are positive. These will be treated as missing data."
-            write(51, *) "Please check your survey file for errors."
-            write (51, *) "Positive phase values found at indices: "
-            do i = 1, nm
-                if (pos_dobsi_idx(i)) write (51, *) i
-            end do
-            close (51)
+        if (i_flag) then
+            if (any(pos_dobsi_idx)) then
+                write(*, *) "WARNING: Some phase values are positive. These will be treated as missing data."
+                write(*, *) "Please check your survey file for errors."
+                write(*, *) "Indicies of positive phase values output to the log file."
+                open (51, file='e4d.log', status='old', action='write', position='append')
+                write(51, *) "WARNING: Some phase values are positive. These will be treated as missing data."
+                write(51, *) "Please check your survey file for errors."
+                write (51, *) "Positive phase values found at indices: "
+                do i = 1, nm
+                    if (pos_dobsi_idx(i)) write (51, *) i
+                end do
+                close (51)
+            end if
         end if
-        if (any(neg_dobs_idx) .or. any(pos_dobsi_idx)) then
+        if (any(neg_dobs_idx)) then
             call crash_exit
+        else if (i_flag) then
+            if (any(pos_dobsi_idx)) then
+                call crash_exit
+            end if
         end if
 
     end subroutine read_survey
@@ -3786,6 +3711,8 @@ contains
 
     end subroutine check_files
     !__________________________________________________________________________
+
+    !_________________________________________________________________________
 
     character*40 function lcase(sinput)
         implicit none

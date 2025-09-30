@@ -25,8 +25,14 @@ contains
         call MPI_BCAST(command, 1, MPI_INTEGER, 0, COMM, ierr)
 
         select case (command)
-            !return to main
+            !end current run, continue listening
         case (0)
+            ! Reset any slave-specific variables for next run if needed
+            ! (Add reset logic here if variables need to be cleared)
+            goto 100  ! Continue listening for next run
+
+            !completely exit slave process
+        case (99)
             return
 
             !recieve elements

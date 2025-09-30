@@ -1,0 +1,61 @@
+\contentsline {section}{\numberline {1}Introduction}{3}{section.1}%
+\contentsline {section}{\numberline {2}Installation}{3}{section.2}%
+\contentsline {subsection}{\numberline {2.1}System Requirements}{3}{subsection.2.1}%
+\contentsline {subsection}{\numberline {2.2}Required Software}{3}{subsection.2.2}%
+\contentsline {subsection}{\numberline {2.3}Downloading E4D}{3}{subsection.2.3}%
+\contentsline {subsection}{\numberline {2.4}Automatic Installation}{4}{subsection.2.4}%
+\contentsline {subsection}{\numberline {2.5}Manual Installation}{4}{subsection.2.5}%
+\contentsline {section}{\numberline {3}Background}{6}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Complex Conductivity}{6}{subsection.3.1}%
+\contentsline {subsubsection}{\numberline {3.1.1}Calculating Phase from Real and Imaginary Conductivity}{6}{subsubsection.3.1.1}%
+\contentsline {subsubsection}{\numberline {3.1.2}Calculating Imaginary Conductivity from Real Conductivity and Phase}{6}{subsubsection.3.1.2}%
+\contentsline {subsubsection}{\numberline {3.1.3}Magnitude of Complex Conductivity}{6}{subsubsection.3.1.3}%
+\contentsline {subsection}{\numberline {3.2}Decoupling Real and Imaginary Components}{7}{subsection.3.2}%
+\contentsline {subsection}{\numberline {3.3}DCR Data}{7}{subsection.3.3}%
+\contentsline {subsection}{\numberline {3.4}IP Data}{7}{subsection.3.4}%
+\contentsline {subsection}{\numberline {3.5}Triangular Mesh}{7}{subsection.3.5}%
+\contentsline {subsection}{\numberline {3.6}Tetrahedral Mesh}{8}{subsection.3.6}%
+\contentsline {subsection}{\numberline {3.7}Constrained Tetrahedralisation}{8}{subsection.3.7}%
+\contentsline {subsection}{\numberline {3.8}Inversion}{8}{subsection.3.8}%
+\contentsline {subsection}{\numberline {3.9}Forward Modelling}{9}{subsection.3.9}%
+\contentsline {subsection}{\numberline {3.10}Objective Function}{9}{subsection.3.10}%
+\contentsline {subsection}{\numberline {3.11}Structural Metrics}{10}{subsection.3.11}%
+\contentsline {subsection}{\numberline {3.12}Weighting Functions}{11}{subsection.3.12}%
+\contentsline {section}{\numberline {4}Types of Constraints}{14}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Smoothness Constraint}{14}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}Minimum Conductivity Constraint}{14}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Maximum Conductivity Constraint}{14}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Blocky Constraint}{15}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}Anisotropic Weighting and Inequality Constraints}{15}{subsection.4.5}%
+\contentsline {section}{\numberline {5}User Defined Input File Formats}{16}{section.5}%
+\contentsline {subsection}{\numberline {5.1}General \texttt {inp} File Format}{16}{subsection.5.1}%
+\contentsline {subsection}{\numberline {5.2}Mesh Generation}{18}{subsection.5.2}%
+\contentsline {subsubsection}{\numberline {5.2.1}\texttt {inp} File Format}{18}{subsubsection.5.2.1}%
+\contentsline {subsubsection}{\numberline {5.2.2}\texttt {cfg} File Format}{19}{subsubsection.5.2.2}%
+\contentsline {subsection}{\numberline {5.3}Forward Modelling}{24}{subsection.5.3}%
+\contentsline {subsubsection}{\numberline {5.3.1}\texttt {inp} File Format}{24}{subsubsection.5.3.1}%
+\contentsline {subsubsection}{\numberline {5.3.2}\texttt {srv} File Format}{25}{subsubsection.5.3.2}%
+\contentsline {subsubsection}{\numberline {5.3.3}\texttt {sig} File Format}{27}{subsubsection.5.3.3}%
+\contentsline {subsubsection}{\numberline {5.3.4}\texttt {out} File Format}{28}{subsubsection.5.3.4}%
+\contentsline {subsection}{\numberline {5.4}Inversion}{29}{subsection.5.4}%
+\contentsline {subsubsection}{\numberline {5.4.1}\texttt {inp} File Format}{29}{subsubsection.5.4.1}%
+\contentsline {subsubsection}{\numberline {5.4.2}\texttt {srv} File Format}{33}{subsubsection.5.4.2}%
+\contentsline {subsubsection}{\numberline {5.4.3}\texttt {out} File Format}{35}{subsubsection.5.4.3}%
+\contentsline {subsubsection}{\numberline {5.4.4}Obsolete \texttt {inv} File Format}{36}{subsubsection.5.4.4}%
+\contentsline {section}{\numberline {6}Miscellaneous File Formats}{37}{section.6}%
+\contentsline {subsection}{\numberline {6.1}\texttt {node/ele/edge/face/neigh} File Format}{37}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}\texttt {trn} File Format}{38}{subsection.6.2}%
+\contentsline {section}{\numberline {7}IP Inversion Tutorial}{39}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Preliminary Setup}{40}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Forward SIP1}{40}{subsection.7.2}%
+\contentsline {subsubsection}{\numberline {7.2.1}Input Files}{40}{subsubsection.7.2.1}%
+\contentsline {subsubsection}{\numberline {7.2.2}Generating the Mesh with the SIP1 mode}{41}{subsubsection.7.2.2}%
+\contentsline {subsection}{\numberline {7.3}Forward Model}{42}{subsection.7.3}%
+\contentsline {subsubsection}{\numberline {7.3.1}Input Files}{42}{subsubsection.7.3.1}%
+\contentsline {subsubsection}{\numberline {7.3.2}Calculating a Forward Model with the IP2 mode}{42}{subsubsection.7.3.2}%
+\contentsline {subsection}{\numberline {7.4}Inversion Mesh}{43}{subsection.7.4}%
+\contentsline {subsubsection}{\numberline {7.4.1}Generating the Mesh with the SIP1 mode}{43}{subsubsection.7.4.1}%
+\contentsline {subsection}{\numberline {7.5}Inversion}{44}{subsection.7.5}%
+\contentsline {subsubsection}{\numberline {7.5.1}Artificial Noise}{44}{subsubsection.7.5.1}%
+\contentsline {subsubsection}{\numberline {7.5.2}Input Files for Inversion}{44}{subsubsection.7.5.2}%
+\contentsline {subsubsection}{\numberline {7.5.3}Running the Inversion in SIP3 Mode}{45}{subsubsection.7.5.3}%

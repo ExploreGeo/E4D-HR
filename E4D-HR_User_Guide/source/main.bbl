@@ -1,0 +1,23 @@
+\begin{thebibliography}{1}
+
+\bibitem{balay2019petsc}
+Satish Balay, Shrirang Abhyankar, Mark Adams, Jed Brown, Peter Brune, Kris Buschelman, Lisandro Dalcin, Alp Dener, Victor Eijkhout, William Gropp, et~al.
+\newblock Petsc users manual.
+\newblock 2019.
+
+\bibitem{johnson_3-d_2017}
+Timothy~C Johnson and Jonathan Thomle.
+\newblock 3-d decoupled inversion of complex conductivity data in the real number domain.
+\newblock {\em Geophysical Journal International}, 212(1):284--296, January 2017.
+
+\bibitem{rucker_three-dimensional_2006}
+Carsten Rücker, Thomas Günther, and Klaus Spitzer.
+\newblock Three-dimensional modelling and inversion of dc resistivity data incorporating topography—i. modelling.
+\newblock {\em Geophysical Journal International}, 166(2):495--505, August 2006.
+
+\bibitem{10.1145/2629697}
+Hang Si.
+\newblock Tetgen, a delaunay-based quality tetrahedral mesh generator.
+\newblock {\em ACM Trans. Math. Softw.}, 41(2), February 2015.
+
+\end{thebibliography}

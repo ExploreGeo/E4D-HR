@@ -21,6 +21,7 @@ CONFIG = {
         "MPICC": "mpiicc -cc=icx",
         "MPICXX": "mpiicpc -cxx=icpx",
         "FOPTFLAGS": "-O2 -march=native -mtune=native",
+        "FDEBUGFLAGS": "-O0 -g -traceback -check bounds,pointers,format",
         "COPTFLAGS": "-O2 -march=native -mtune=native",
         "CXXOPTFLAGS": "-O2 -march=native -mtune=native",
     },
@@ -63,6 +64,7 @@ def prompt_reinstall(choice, args=None):
         "3": ["E4D-HR"],
         "4": ["Triangle"],
         "5": ["TetGen"],
+        "6": ["E4D-HR"],  # Debug mode
     }
     
     reinstall = {}
@@ -126,21 +128,30 @@ def install_tetgen():
     run_command(f"make CXX={CONFIG['compiler']['CXX']}", cwd=tetgen_dir)
     shutil.copy(os.path.join(tetgen_dir, "tetgen"), CONFIG["directories"]["bin_dir"])
 
-def install_e4d_hr():
+def install_e4d_hr(debug=False):
     """Compile and install E4D-HR."""
     petsc_dir = os.path.join(CONFIG["directories"]["lib_dir"], CONFIG["software"]["petsc_dir_name"])
     petsc_arch = "arch-linux-c-opt"
     e4d_path = os.path.join(CONFIG["directories"]["bin_dir"], "e4d")
     shutil.rmtree(e4d_path, ignore_errors=True)
-    print("Compiling and installing E4D-HR...")
+    
+    mode_str = "debug" if debug else "optimised"
+    print(f"Compiling and installing E4D-HR ({mode_str} mode)...")
+    if debug:
+        print("Note: For optimal debugging, consider using a debug build of PETSc (--with-debugging=1)")
+    
     env = os.environ.copy()
     env["PETSC_DIR"] = petsc_dir
     env["PETSC_ARCH"] = petsc_arch
     src_dir = os.path.join(CONFIG["directories"]["e4d_dir"], "src")
     run_command("make clean", cwd=src_dir, env=env)
+    
+    # Choose flags based on debug mode
+    fflags = CONFIG['compiler']['FDEBUGFLAGS'] if debug else CONFIG['compiler']['FOPTFLAGS']
+    
     run_command(
         f"make FC='{CONFIG['compiler']['MPIFC']}' "
-        f"FFLAGS='{CONFIG['compiler']['FOPTFLAGS']} -r8 -heap-arrays'",
+        f"FFLAGS='{fflags} -r8 -heap-arrays'",
         cwd=src_dir,
         env=env
     )
@@ -194,6 +205,29 @@ def uninstall():
 
 def menu(args=None):
     """Display menu and return selected option."""
+    # Check for numeric shortcuts like -3y (option 3 with yes flag)
+    if args and hasattr(args, 'shortcut') and args.shortcut:
+        shortcut = args.shortcut
+        # Extract option number and optional 'y' flag
+        if shortcut[-1] == 'y':
+            args.force = True
+            choice = shortcut[:-1]
+        else:
+            choice = shortcut
+        
+        if choice in ["0", "1", "2", "3", "4", "5", "6"]:
+            action_names = {
+                '0': 'uninstall all',
+                '1': 'install all',
+                '2': 'install PETSc',
+                '3': 'install E4D-HR',
+                '4': 'install Triangle',
+                '5': 'install TetGen',
+                '6': 'install E4D-HR (debug)'
+            }
+            print(f"Using shortcut: {action_names[choice]}")
+            return choice
+    
     # If action is provided via command line, use it
     if args and args.action:
         action_map = {
@@ -202,6 +236,8 @@ def menu(args=None):
             'e4d': '3',
             'triangle': '4',
             'tetgen': '5',
+            'e4d-debug': '6',
+            'debug': '6',
             'uninstall': '0'
         }
         choice = action_map.get(args.action.lower())
@@ -220,9 +256,10 @@ def menu(args=None):
     print(" 3  Install      E4D-HR")
     print(" 4  Install      Triangle")
     print(" 5  Install      TetGen")
+    print(" 6  Install      E4D-HR (Debug)")
     print("="*40)
-    choice = input("Select an option (0-5, default [1]): ").strip()
-    return choice if choice in ["0", "2", "3", "4", "5"] else "1"
+    choice = input("Select an option (0-6, default [1]): ").strip()
+    return choice if choice in ["0", "2", "3", "4", "5", "6"] else "1"
 
 def parse_arguments():
     """Parse command-line arguments."""
@@ -236,12 +273,34 @@ Examples:
   python install.py --action petsc --force   # Force reinstall PETSc
   python install.py --action e4d --skip      # Install E4D-HR, skip existing
   python install.py --action uninstall --yes # Uninstall without confirmation
+  python install.py --action debug           # Install E4D-HR in debug mode
+  python install.py -3y                      # Shortcut: Force reinstall E4D-HR
+  python install.py -6                       # Shortcut: Install E4D-HR debug
+  python install.py -0y                      # Shortcut: Force uninstall all
         """
     )
     
+    # Add shortcut arguments for each option
+    parser.add_argument('-0', action='store_const', const='0', dest='shortcut', help='Shortcut for uninstall (add y for --yes)')
+    parser.add_argument('-1', action='store_const', const='1', dest='shortcut', help='Shortcut for install all (add y for --force)')
+    parser.add_argument('-2', action='store_const', const='2', dest='shortcut', help='Shortcut for install PETSc (add y for --force)')
+    parser.add_argument('-3', action='store_const', const='3', dest='shortcut', help='Shortcut for install E4D-HR (add y for --force)')
+    parser.add_argument('-4', action='store_const', const='4', dest='shortcut', help='Shortcut for install Triangle (add y for --force)')
+    parser.add_argument('-5', action='store_const', const='5', dest='shortcut', help='Shortcut for install TetGen (add y for --force)')
+    parser.add_argument('-6', action='store_const', const='6', dest='shortcut', help='Shortcut for install E4D-HR debug (add y for --force)')
+    
+    # Support compound shortcuts like -3y
+    parser.add_argument('-0y', action='store_const', const='0y', dest='shortcut', help='Uninstall all without confirmation')
+    parser.add_argument('-1y', action='store_const', const='1y', dest='shortcut', help='Force install all')
+    parser.add_argument('-2y', action='store_const', const='2y', dest='shortcut', help='Force install PETSc')
+    parser.add_argument('-3y', action='store_const', const='3y', dest='shortcut', help='Force install E4D-HR')
+    parser.add_argument('-4y', action='store_const', const='4y', dest='shortcut', help='Force install Triangle')
+    parser.add_argument('-5y', action='store_const', const='5y', dest='shortcut', help='Force install TetGen')
+    parser.add_argument('-6y', action='store_const', const='6y', dest='shortcut', help='Force install E4D-HR debug')
+    
     parser.add_argument(
         '--action', '-a',
-        choices=['all', 'petsc', 'e4d', 'triangle', 'tetgen', 'uninstall'],
+        choices=['all', 'petsc', 'e4d', 'triangle', 'tetgen', 'e4d-debug', 'debug', 'uninstall'],
         help='Installation action to perform'
     )
     
@@ -279,7 +338,7 @@ def main():
     
     if choice == "0":
         # Confirm uninstall
-        if args.yes:
+        if args.yes or (hasattr(args, 'shortcut') and args.shortcut and args.shortcut.endswith('y')):
             confirm = "y"
         else:
             confirm = input("Are you sure you want to uninstall all E4D-HR components? [y/N]: ").strip().lower()
@@ -309,6 +368,8 @@ def main():
         install_triangle()
     elif choice == "5" and reinstall["TetGen"]:
         install_tetgen()
+    elif choice == "6" and reinstall["E4D-HR"]:
+        install_e4d_hr(debug=True)
     print()
     print("="*40)
     print("Installation completed successfully.")

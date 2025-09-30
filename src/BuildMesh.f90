@@ -18,7 +18,7 @@ contains
         integer :: cfg_unit, io_status
         integer :: translate_flag
         real(real128) :: x_origin, y_origin, z_origin
-        character(:), allocatable :: vis_loc
+        character(256) :: vis_loc
 
         logical :: i_flag
 
@@ -76,6 +76,14 @@ contains
         tmp_flag = 0
         pmap = 0
         n2pts = 0
+
+        ! If max_vol has 'E' in it, change to 'e' for tetgen compatibility
+        do i = 1, len_trim(max_vol)
+            if (max_vol(i:i) == 'E') then
+                max_vol(i:i) = 'e'
+            end if
+        end do
+
         open (52, file="mesh_build.log", action='write', status='old', position='append')
         do i = 1, n_points
 

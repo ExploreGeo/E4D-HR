@@ -111,337 +111,339 @@ program main
     !initialize the log file e4d.log
     call init_log
 
-    !set the iteration number
-    iter = 0
+    call initial_read
 
-    !Read the inputs ... read_inp is in the module: input
-    call read_input
+    ! Do loop testing.
+    do run_number = 1, total_runs
+        write(*, *) "****************************************************************"
+        write(*, *) "Starting run number ", run_number, " of ", total_runs ! Need to change this to use report ideally
+        write(*, *) "****************************************************************"
 
-    ! Populate the mesh with the average apparent conductivity if required
-    if (use_mean) then
-        call calculate_mean_model()
-    else if (use_median) then
-        call calculate_median_model()
-    end if
+        ! Reset all E4D variables for clean start of new run
+        iter = 0
 
-    !e4d requires at least 2 processors except in analytic and mesh build modes
-    if (mode > 1 .and. n_rank < 2 .and. .not. analytic) then
-        call nreport(59)
-        call PetscFinalize(perr)
-        stop
-    end if
+        ! Load settings for this run
+        call load_settings(run_number)
 
-    if (analytic) then
-        !compute the analytic solution and exit (see module: v_analytic)
-        call compute_analytic
-        call send_command(0)
-        call PetscFinalize(perr)
-        stop
-    end if
+        ! Populate the mesh with the average apparent conductivity if required
+        if (use_mean) then
+            call calculate_mean_model()
+        else if (use_median) then
+            call calculate_median_model()
+        end if
 
-    if (mode == 0) then
-        !! test read on input files specified in e4d.inp
-        ! in read_inp
-        call check_files
-        if (cfg_flag) then
-            ! in mesh
-            call build_tetgen4(i_flag)
-        else
-            ! in master
-            call check_meshfiles
-            if (inv_opt_flag) then
-                ! in read_inp
-                call get_inv_optsII
+        !e4d requires at least 2 processors except in analytic and mesh build modes
+        if (mode > 1 .and. n_rank < 2 .and. .not. analytic) then
+            call nreport(59)
+            cycle
+        end if
+
+        if (analytic) then
+            !compute the analytic solution and exit (see module: v_analytic)
+            call compute_analytic
+            call send_command(0)
+            cycle
+        end if
+
+        if (mode == 0) then
+            !! test read on input files specified in e4d.inp
+            ! in read_inp
+            call check_files
+            if (cfg_flag) then
+                ! in mesh
+                call build_tetgen4(i_flag)
+            else
+                ! in master
+                call check_meshfiles
+                if (inv_opt_flag) then
+                    ! in read_inp
+                    call get_inv_opts(run_number)
+                end if
             end if
-        end if
-        call testrun_report()
+            call testrun_report()
 
-        call send_command(0)
-        call PetscFinalize(perr)
-        stop
-    end if
-
-    if (mode == 1) then
-        !build the mesh and exit
-        call build_tetgen4(i_flag)
-        call send_command(0)
-        call get_time
-        call treport(11)
-        call PetscFinalize(perr)
-        stop
-    end if
-
-    !if the number of slaves is greater than the number of electrodes
-    !print an error message and exit
-    if (n_rank - 1 .gt. ne) then
-        call send_command(0)
-        call nreport(58)
-        call PetscFinalize(perr)
-        stop
-    end if
-
-    !Send the slaves some info they  need (see module: master)
-    call send_info
-
-    !do a multi-forward run if called for
-    if (multi_forward) then
-!#ifdef fseq
-        call exec_mforward
-!#endif
-        call send_command(0)
-        call PetscFinalize(perr)
-        stop
-    end if
-
-    !send the conductivity vector to the slaves (see module: master)
-    !if this is a complex conductivity computation then
-    !also send the complex conductivity
-    call send_sigma
-    if (i_flag) call send_sigmai
-
-    !setup a mpi communication group for the slaves only (see module: master)
-    call build_sgroupm
-
-    !setup the forward runs: (see module: master)
-    call setup_forward
-    call nreport(65)
-    call get_time
-    call treport(1)
-
-    !if this is a complex conductivity run then get the
-    !complex conductivity forward comps ready (see module: master)
-    if (i_flag) call send_command(102)
-    call nreport(66)
-    call get_time
-    call treport(1)
-
-    !build the coupling matrix (command 3 for slaves)
-    !if this is a complex conductivity forward run then
-    !setup the complex conductivity coupling matrix also
-    call send_command(3)
-    if (i_flag) call send_command(103)
-
-    !execute a forward run
-    call nreport(67)
-    call nreport(68)
-    if (i_flag) then
-        call run_forward
-        call nreport(71)
-        call run_forwardi
-        !do another forward run after the imaginary solution to include
-        !the real current arising from the imaginary potential
-        call run_forward
-    else
-        call run_forward
-    end if
-
-    if (res_flag) then
-        !survey optimization subroutines
-#ifdef resmode
-        call data_def_opt
-#endif
-        call send_command(0)
-        call PetscFinalize(perr)
-        stop
-    end if
-
-    !Read the inverse options and build the constraint matrix
-    !while slaves are solving
-    if (mode == 3) then
-        !if(i_flag) then
-        !   invi = .true.
-        !   call get_inv_optsII                           !see module: input
-        !end if
-        invi = .false.
-        call get_inv_optsII
-
-        !send and/or get parmeters needed for cross gradient constraints
-
-
-        call nreport(2)                                  !see module: report
-        call build_WmII                                  !see module: mod_con
-        call send_J_on_off
-        call build_rrseq                                 !see module: master
-
-    end if
-
-    !get the forward run times from slaves and report
-    call treport(0)                                     !see module: report
-    call get_abtimes                                    !see module: master
-    call treport(7)
-    call get_frtimes                                    !see module: master
-    call treport(6)
-
-    !Assemble the simulated data
-    call get_dpred
-
-    !if this is just a forward run then stop here
-    if (mode == 2) then
-        !output any requested potential distributions
-        call write_pots                                  !see module: output
-
-        !build a synthetic survey file based on the
-        !simulated data
-        call export_simulated_survey()                                   !see module: output
-
-        !check for Jacobian output
-        if (jaco_out_opt) then
-            call build_rrseq
-            call send_rrseq
-            call mjaco
-            call print_jaco                               !see module master
+            call send_command(0)
+            cycle
         end if
 
-        !instruct slaves to clean up and exit
-        !clean up and exit
-        call send_command(0)
+        if (mode == 1 .and. my_rank == 0) then
+            !build the mesh and exit
+            call build_tetgen4(i_flag)
+            call send_command(0)
+            call get_time
+            call treport(11)
+            cycle
+        end if
+
+        !if the number of slaves is greater than the number of electrodes
+        !print an error message and exit
+        if (n_rank - 1 .gt. ne) then
+            call send_command(0)
+            call nreport(58)
+            cycle
+        end if
+
+        !Send the slaves some info they  need (see module: master)
+        call send_info
+
+        !do a multi-forward run if called for
+        if (multi_forward) then
+    !#ifdef fseq
+            call exec_mforward
+    !#endif
+            call send_command(0)
+            cycle
+        end if
+
+        !send the conductivity vector to the slaves (see module: master)
+        !if this is a complex conductivity computation then
+        !also send the complex conductivity
+        call send_sigma
+        if (i_flag) call send_sigmai
+
+        !setup a mpi communication group for the slaves only (see module: master)
+        call build_sgroupm
+
+        !setup the forward runs: (see module: master)
+        call setup_forward
+        call nreport(65)
         call get_time
-        call treport(11)
-        call PetscFinalize(perr)
-        call nreport(70)
-        stop
+        call treport(1)
 
-    end if
+        !if this is a complex conductivity run then get the
+        !complex conductivity forward comps ready (see module: master)
+        if (i_flag) call send_command(102)
+        call nreport(66)
+        call get_time
+        call treport(1)
 
-    !send the Jacobian build sequence to the slaves
-    call send_rrseq                                     !see module: master
-    !check the data fit
-    call check_convergence                              !see module: obj
+        !build the coupling matrix (command 3 for slaves)
+        !if this is a complex conductivity forward run then
+        !setup the complex conductivity coupling matrix also
+        call send_command(3)
+        if (i_flag) call send_command(103)
 
-    !report the convergence
-    call nreport(1)
-    call treport(-1)
-
-    !get the phase if this is an sip inversion
-    if (i_flag) call get_phase
-
-    !the inverse iterations start here
-    do while (.not. con_flag)
-        IF (iter + 1 .gt. max_iters_dc) then
-            write (*, *) "-------------------------------------"
-            write (*, *) "MAXIMUM ITERATIONS REACHED FOR DC"
-            write (*, *) "-------------------------------------"
-            EXIT ! exit loop
-        END IF
-        iter = iter + 1
+        !execute a forward run
         call nreport(67)
-
-        !instruct slaves to build the jacobian matrix
-        call treport(0)
-        call nreport(72)
-        call mjaco
-        call get_jtimes
-        call treport(3)
-
-        !allocate the update vector if necessary
-        call alloc_sigup
-
-        !build the update vector
-        if (ls_beta) then
-            !the beta line search option is currently broken
-            call beta_line_search
+        call nreport(68)
+        if (i_flag) then
+            call run_forward
+            call nreport(71)
+            call run_forwardi
+            !do another forward run after the imaginary solution to include
+            !the real current arising from the imaginary potential
+            call run_forward
         else
-            !do the inversion
-            call pcgls
-            call treport(4)
+            call run_forward
+        end if
 
-            !update the conductivity
-            call update_sigma
+        if (res_flag) then
+            !survey optimization subroutines
+    #ifdef resmode
+            call data_def_opt
+    #endif
+            call send_command(0)
+            cycle
+        end if
 
-            !send the conductivity to the slaves
+        !Read the inverse options and build the constraint matrix
+        !while slaves are solving
+        if (mode == 3) then
+            !if(i_flag) then
+            !   invi = .true.
+            !   call get_inv_opts                           !see module: input
+            !end if
+            invi = .false.
+            call get_inv_opts(run_number)
+
+            !send and/or get parmeters needed for cross gradient constraints
+
+
+            call nreport(2)                                  !see module: report
+            call build_WmII                                  !see module: mod_con
+            call send_J_on_off
+            call build_rrseq                                 !see module: master
+
+        end if
+
+        !get the forward run times from slaves and report
+        call treport(0)                                     !see module: report
+        call get_abtimes                                    !see module: master
+        call treport(7)
+        call get_frtimes                                    !see module: master
+        call treport(6)
+
+        !Assemble the simulated data
+        call get_dpred
+
+        !if this is just a forward run then stop here
+        if (mode == 2) then
+            !output any requested potential distributions
+            call write_pots                                  !see module: output
+
+            !build a synthetic survey file based on the
+            !simulated data
+            call export_simulated_survey()                                   !see module: output
+
+            !check for Jacobian output
+            if (jaco_out_opt) then
+                call build_rrseq
+                call send_rrseq
+                call mjaco
+                call print_jaco                               !see module master
+            end if
+
+            !instruct slaves to clean up and exit
+            !clean up and exit
+            call send_command(0)
+            call get_time
+            call treport(11)
+            call nreport(70)
+            cycle
+
+        end if
+
+        !send the Jacobian build sequence to the slaves
+        call send_rrseq                                     !see module: master
+        !check the data fit
+        call check_convergence                              !see module: obj
+
+        !report the convergence
+        call nreport(1)
+        call treport(-1)
+
+        !get the phase if this is an sip inversion
+        if (i_flag) call get_phase
+
+        !the inverse iterations start here
+        do while (.not. con_flag)
+            IF (iter + 1 .gt. max_iters_dc) then
+                write (*, *) "-------------------------------------"
+                write (*, *) "MAXIMUM ITERATIONS REACHED FOR DC"
+                write (*, *) "-------------------------------------"
+                EXIT ! exit loop
+            END IF
+            iter = iter + 1
+            call nreport(67)
+
+            !instruct slaves to build the jacobian matrix
+            call treport(0)
+            call nreport(72)
+            call mjaco
+            call get_jtimes
+            call treport(3)
+
+            !allocate the update vector if necessary
+            call alloc_sigup
+
+            !build the update vector
+            if (ls_beta) then
+                !the beta line search option is currently broken
+                call beta_line_search
+            else
+                !do the inversion
+                call pcgls
+                call treport(4)
+
+                !update the conductivity
+                call update_sigma
+
+                !send the conductivity to the slaves
+                call send_sigma
+                if (i_flag) then
+                    call update_sigi
+                    call send_sigmai
+                    call send_command(103)
+                end if
+
+                call send_command(3)
+                !output the conductivity for this iteration
+                call export_real_conductivity_model
+                call send_command(5)
+                !execute a forward run
+                call run_forward
+
+                !build the new constraint equations
+                call build_WmII
+                call get_abtimes
+                call treport(7)
+                call get_frtimes
+                call treport(6)
+
+                call get_time; etm1 = etm
+                !assemble the simulated data
+                call get_dpred
+                call get_time; etm = etm - etm1
+                call treport(2)
+                !check for convergence
+                call check_convergence
+
+                !see if we need to reduce beta
+                call check_beta
+                call nreport(1)
+
+            end if
+
+            call treport(-1)
+            call nreport(73)
+
+        end do
+
+        !adjust the solution to the target chi-squared
+        !if the solution was updated from the starting model and converged
+        if (iter > 0 .and. con_flag) then
+            iter = iter + 1
+            call nreport(4)
+            call nreport(56)
+            call adjust_model(1)
             call send_sigma
             if (i_flag) then
                 call update_sigi
                 call send_sigmai
-                call send_command(103)
             end if
-
             call send_command(3)
-            !output the conductivity for this iteration
             call export_real_conductivity_model
             call send_command(5)
-            !execute a forward run
             call run_forward
 
-            !build the new constraint equations
-            call build_WmII
             call get_abtimes
             call treport(7)
+            call get_ksptimes
+            call treport(8)
             call get_frtimes
             call treport(6)
 
             call get_time; etm1 = etm
-            !assemble the simulated data
             call get_dpred
             call get_time; etm = etm - etm1
             call treport(2)
-            !check for convergence
+
             call check_convergence
-
-            !see if we need to reduce beta
-            call check_beta
-            call nreport(1)
-
+            call nreport(55)
         end if
 
-        call treport(-1)
-        call nreport(73)
+        !print the sum of squared sensitivities if required
+        if (mode == 3 .and. jprnt) then
+            call mjaco
+            call record_sens
+        end if
 
+        !invert the complex data if this is a sip inversion
+        if (mode == 3 .and. i_flag) then
+            call complex_inv
+        end if
+
+        !The baseline inversion is done. If this is a time-lapse
+        !inversion, invert the time lapse data files.
+        if (tl_ly) call time_lapse_1
     end do
 
-    !adjust the solution to the target chi-squared
-    !if the solution was updated from the starting model and converged
-    if (iter > 0 .and. con_flag) then
-        iter = iter + 1
-        call nreport(4)
-        call nreport(56)
-        call adjust_model(1)
-        call send_sigma
-        if (i_flag) then
-            call update_sigi
-            call send_sigmai
-        end if
-        call send_command(3)
-        call export_real_conductivity_model
-        call send_command(5)
-        call run_forward
-
-        call get_abtimes
-        call treport(7)
-        call get_ksptimes
-        call treport(8)
-        call get_frtimes
-        call treport(6)
-
-        call get_time; etm1 = etm
-        call get_dpred
-        call get_time; etm = etm - etm1
-        call treport(2)
-
-        call check_convergence
-        call nreport(55)
-    end if
-
-    !print the sum of squared sensitivities if required
-    if (mode == 3 .and. jprnt) then
-        call mjaco
-        call record_sens
-    end if
-
-    !invert the complex data if this is a sip inversion
-    if (mode == 3 .and. i_flag) then
-        call complex_inv
-    end if
-
-    !The baseline inversion is done. If this is a time-lapse
-    !inversion, invert the time lapse data files.
-    if (tl_ly) call time_lapse_1
-
-    !clean up and exit
-    call send_command(0)
+    !clean up and exit - send final termination command
+    call send_command(99)  ! New command to completely exit slaves
     call get_time
     call treport(11)
     call dist_abort
+    call PetscFinalize(perr)
 
 contains
 
@@ -468,7 +470,7 @@ contains
         call send_command(216)
 
         !read the phase inversion options
-        call get_inv_optsII
+        call get_inv_opts(run_number)
         call update_sigi
         call nreport(2)
         if (allocated(J_on_off)) deallocate (J_on_off)
@@ -576,7 +578,7 @@ contains
                 call send_command(215)
 
                 !read the conductivity inversion options
-                call get_inv_optsII
+                call get_inv_opts(run_number)
             end if
 
             call nreport(51)

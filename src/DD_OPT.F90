@@ -108,7 +108,7 @@ contains
     
     !!update the inverted model
     invi = .false.
-    call get_inv_optsII 
+    call get_inv_opts(run_number)
     call nreport(2)                                  !see module: report
     call build_WmII                                  !see module: mod_con
     call send_J_on_off

@@ -77,6 +77,8 @@ implicit none
   integer :: nec                                           !!number of external constraints
   integer :: n_inc                                         !!number of negative boundaries in the mesh
   integer :: n_met                                         !!number of metallic inclosures in the mesh
+  integer :: run_number                                    !!run number for multiple runs
+  integer :: total_runs                                    !!total number of runs
 
   !Reals
   real :: Scale_factor=1.0                                 !! linear scale factor if using int chargeability or PFE

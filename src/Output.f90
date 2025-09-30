@@ -37,25 +37,29 @@ contains
         if (.not. exists) then
             call log_error("Cannot find the output options file: " &
                 // trim(out_file))
-            return
-        end if
+            ! Assume default structure: simulated_data_flag = 1
+            simulated_data_flag = 1
+        else
+            open(newunit=unit, file=trim(out_file), status="old", action="read", &
+                iostat=io_status)
 
-        open(newunit=unit, file=trim(out_file), status="old", action="read", &
-            iostat=io_status)
+            if (io_status .ne. 0) then
+                call log_error("Problem reading the output options file: " &
+                    // trim(out_file))
+                ! Assume default structure: simulated_data_flag = 1
+                simulated_data_flag = 1
+            else
+                read(unit, *, iostat=io_status) simulated_data_flag
 
-        if (io_status .ne. 0) then
-            call log_error("Problem reading the output options file: " &
-                // trim(out_file))
-            return
-        end if
-
-        read(unit, *, iostat=io_status) simulated_data_flag
-
-        if (io_status .ne. 0) then
-            call log_error("Problem reading the output flag in: " &
-                // trim(out_file))
-            close(unit)
-            return
+                if (io_status .ne. 0) then
+                    call log_error("Problem reading the output flag in: " &
+                        // trim(out_file))
+                    ! Assume default structure: simulated_data_flag = 1
+                    simulated_data_flag = 1
+                end if
+                
+                close(unit)
+            end if
         end if
 
         call execute_command_line("mkdir -p data", exitstat=io_status)
